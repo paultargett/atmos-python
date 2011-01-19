@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import hmac, base64, hashlib, time
-import urllib2
+import urllib2, urllib
 import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
@@ -189,14 +189,15 @@ class EsuRestApi(object):
 
         try:
             response = self.__send_request(request, hashout, headers)
-      
+
         except urllib2.HTTPError as e:
             error_message = e.read()
             print error_message
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
-        
+
+      
     def read_object(self, object_id):
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -228,18 +229,29 @@ class EsuRestApi(object):
         else:
             body = response.read()
             return body
-
-class RequestWithMethod(urllib2.Request):                                                                   # Subclass the urllib2.Request object and then override the HTTP methom
-
-    def __init__(self, method, *args, **kwargs):
-        self._method = method
-        urllib2.Request.__init__(self, *args, **kwargs)
-   
-    def get_method(self):
-        return self._method
-
-
-    #Actually send the request
+        
+    def get_shareable_url(self, object_id, expiration):
+        uid_dict = {}
+        uid_dict["uid"] = self.uid
+        encoded_uid = urllib.urlencode(uid_dict)
+            
+        sb = "GET\n"
+        sb += "/rest/objects/"+object_id+"\n"
+        sb += self.uid+"\n"
+        sb += str(expiration)
+        
+        print sb
+        
+        signature = self.__sign(sb)
+        sig_dict = {}
+        sig_dict["signature"] = signature
+        encoded_sig = urllib.urlencode(sig_dict)
+        resource = "/rest/objects/"+object_id+ "?" + encoded_uid + "&expires=" + str(expiration) + "&" + encoded_sig
+        url = self.scheme + "://" + self.host + resource
+        
+        return url
+            
+        #Actually send the request
     def __send_request(self, request, hashout, headers):
         headers += ("\nx-emc-signature:"+hashout)
         print headers+"\n"
@@ -250,12 +262,23 @@ class RequestWithMethod(urllib2.Request):                                       
         return response
     
     # Private method used to sign HTTP requests    
-    def __sign(self, request, headers):
+    def __sign(self, headers):
         decodedkey = base64.b64decode(self.secret)                                                          
         hash = hmac.new(decodedkey, headers, hashlib.sha1).digest()                                         
         hashout = base64.encodestring(hash).strip()                                                         
    
         return hashout
+
+
+class RequestWithMethod(urllib2.Request):                                                                   # Subclass the urllib2.Request object and then override the HTTP methom
+
+    def __init__(self, method, *args, **kwargs):
+        self._method = method
+        urllib2.Request.__init__(self, *args, **kwargs)
+   
+    def get_method(self):
+        return self._method
+
 
 #TODO:  There's a lot that could be added so that this wrapper is in parity with the other wrappers
 #       We're also not doing range updates so large objects will be a problem at the moment.
@@ -288,11 +311,8 @@ class RequestWithMethod(urllib2.Request):                                       
         pass
     
     def set_acl():
-        pass
-    
-    def get_shareable_url():
-        pass
-    
+        pass 
+  
     def delete_user_metadata():
         pass
     
