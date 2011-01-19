@@ -239,9 +239,7 @@ class EsuRestApi(object):
         sb += "/rest/objects/"+object_id+"\n"
         sb += self.uid+"\n"
         sb += str(expiration)
-        
-        print sb
-        
+               
         signature = self.__sign(sb)
         sig_dict = {}
         sig_dict["signature"] = signature
@@ -251,7 +249,7 @@ class EsuRestApi(object):
         
         return url
             
-        #Actually send the request
+    #Actually send the request
     def __send_request(self, request, hashout, headers):
         headers += ("\nx-emc-signature:"+hashout)
         print headers+"\n"
