@@ -64,7 +64,7 @@ class EsuRestApi(object):
         request.add_header("x-emc-uid", self.uid)
         request.add_data(data)
     
-        hashout = self.__sign(request, headers)
+        hashout = self.__sign(headers)
      
         object_id = self.__send_request(request, hashout, headers)
 
@@ -113,7 +113,7 @@ class EsuRestApi(object):
         request.add_header("x-emc-uid", self.uid)
         request.add_data(data)
          
-        hashout = self.__sign(request, headers)
+        hashout = self.__sign(headers)
 
         try:
             response = self.__send_request(request, hashout, headers)
@@ -152,7 +152,7 @@ class EsuRestApi(object):
         request.add_header("x-emc-date", now)
         request.add_header("x-emc-uid", self.uid)
 
-        hashout = self.__sign(request, headers)
+        hashout = self.__sign(headers)
       
         try:
             response = self.__send_request(request, hashout, headers)
@@ -185,7 +185,7 @@ class EsuRestApi(object):
         request.add_header("x-emc-date", now)
         request.add_header("x-emc-uid", self.uid)
     
-        hashout = self.__sign(request, headers)
+        hashout = self.__sign(headers)
 
         try:
             response = self.__send_request(request, hashout, headers)
@@ -217,7 +217,7 @@ class EsuRestApi(object):
         request.add_header("x-emc-date", now)
         request.add_header("x-emc-uid", self.uid)
 
-        hashout = self.__sign(request, headers)
+        hashout = self.__sign(headers)
       
         try:
             response = self.__send_request(request, hashout, headers)
@@ -266,7 +266,7 @@ class EsuRestApi(object):
         headers += "x-emc-path:"+destination+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace/", source+"?rename"))
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", source+"?rename"))
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
@@ -278,9 +278,12 @@ class EsuRestApi(object):
         request.add_header("x-emc-uid", self.uid)
          
         hashout = self.__sign(headers)
+        print "The destination is %s\n" % destination
+        print "The source is %s\n" % source
 
         try:
             response = self.__send_request(request, hashout, headers)
+            
       
         except urllib2.HTTPError as e:
             error_message = e.read()
