@@ -248,7 +248,44 @@ class EsuRestApi(object):
         url = self.scheme + "://" + self.host + resource
         
         return url
-            
+    
+    
+    def rename_object(self, source, destination, force):
+
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+  
+        headers = "POST\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/namespace/"+source+"?rename"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        
+        if force:
+            headers += "x-emc-force:"+"true"+"\n"
+        
+        headers += "x-emc-path:"+destination+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace/", source+"?rename"))
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        
+        if force:
+            request.add_header("x-emc-force", "true")
+        
+        request.add_header("x-emc-path", destination)
+        request.add_header("x-emc-uid", self.uid)
+         
+        hashout = self.__sign(headers)
+
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+                   
     #Actually send the request
     def __send_request(self, request, hashout, headers):
         headers += ("\nx-emc-signature:"+hashout)
@@ -281,8 +318,6 @@ class RequestWithMethod(urllib2.Request):                                       
 #TODO:  There's a lot that could be added so that this wrapper is in parity with the other wrappers
 #       We're also not doing range updates so large objects will be a problem at the moment.
    
-    def rename_object():
-        pass
     
     def list_objects():
         pass
