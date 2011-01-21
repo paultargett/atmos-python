@@ -249,7 +249,7 @@ class EsuRestApi(object):
         
         return url
     
-    
+    # Renaming objects (both files and directories) in the namespace are only supported in Atmos 1.4.x and above. 
     def rename_object(self, source, destination, force):
 
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -257,7 +257,7 @@ class EsuRestApi(object):
         headers = "POST\n"
         headers += "\n"
         headers += now+"\n"
-        headers += "/rest/namespace/"+source+"?rename"+"\n"
+        headers += "/rest/namespace"+source+"?rename"+"\n"
         headers += "x-emc-date:"+now+"\n"
         
         if force:
@@ -288,6 +288,80 @@ class EsuRestApi(object):
         except urllib2.HTTPError as e:
             error_message = e.read()
             print error_message
+            
+    #def rename_object2(self, path, destination, metadata = None, mime_type = None, data = None):
+    def rename_object2(self, path, destination, mime_type = None, data = None):
+
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "POST\n"
+        headers += "\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/namespace"+path+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        #request = urllib2.Request(self.url+"/rest/namespace"+path)
+        if path[0] == "/":
+            path = path[1:]
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", path))
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+
+        request.add_header("x-emc-uid", self.uid)
+        request.add_data(data)
+         
+        hashout = self.__sign(headers)
+
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+            location = response.info().getheader('location')
+            search = re.search(self.ID_EXTRACTOR, location)
+            reg = search.groups() 
+            object_id = reg[0]
+            return object_id
+
+    #def rename_object3(self, object_id):
+    def rename_object3(self, object_id, source, destination, force):
+
+      
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "DELETE\n"
+        headers += "\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = RequestWithMethod("DELETE", "%s/%s" % (self.url+"/rest/objects", object_id))
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-uid", self.uid)
+    
+        hashout = self.__sign(headers)
+
+        try:
+            response = self.__send_request(request, hashout, headers)
+
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
+            return response
+
                    
     #Actually send the request
     def __send_request(self, request, hashout, headers):
