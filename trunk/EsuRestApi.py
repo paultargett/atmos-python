@@ -23,12 +23,13 @@ class EsuRestApi(object):
  
   
     # Creates an object using the Atmos object interface
-    def create_object(self, metadata = None, mime_type = None, data = None):
+    def create_object(self, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
     
-        #if metadata:
-        #    metadatalist = []
-        #    for k, v in metadata.items():
-        #        metadatalist.append("%s=%s" % (k,v))
+        if listable_meta:
+            meta_string = self.__process_metadata(listable_meta)
+            
+        if non_listable_meta:
+            nl_meta_string = self.__process_metadata(non_listable_meta)
             
         if mime_type == None and data != None:
             mime_type = "application/octet-stream"
@@ -45,9 +46,6 @@ class EsuRestApi(object):
         headers += "/rest/objects\n"
         headers += "x-emc-date:"+now+"\n"
      
-        #if metadata:
-        #    headers += metadatalist+"\n"
-        #
         headers += "x-emc-uid:"+self.uid
         request = urllib2.Request(self.url+"/rest/objects")
      
@@ -57,9 +55,14 @@ class EsuRestApi(object):
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
-     
-        if metadata:
-            request.add_header("x-emc-listable-meta", "test100/million=files")
+        
+        if listable_meta:
+            headers += "x-emc-listable-meta:"+meta_string+"\n"
+            request.add_header("x-emc-listable-meta", meta_string)
+            
+        if non_listable_meta:
+            headers += "x-emc-meta:"+nl_meta_string+"\n"
+            request.add_header("x-emc-meta", nl_meta_string)
      
         request.add_header("x-emc-uid", self.uid)
         request.add_data(data)
@@ -70,14 +73,9 @@ class EsuRestApi(object):
 
         return object_id
  
-    def create_object_on_path(self, path, metadata = None, mime_type = None, data = None):
+    
+    def create_object_on_path(self, path, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
      
-     
-        #if metadata:
-        #    metadatalist = []
-        #    for k, v in metadata.items():
-        #        metadatalist.append("%s=%s" % (k,v))
-        #    
         if mime_type == None and data != None:
             mime_type = "application/octet-stream"
          
@@ -93,23 +91,27 @@ class EsuRestApi(object):
         headers += "/rest/namespace"+path+"\n"
         headers += "x-emc-date:"+now+"\n"
      
-        #if metadata:
-        #    headers += metadatalist+"\n"
-        #
-        headers += "x-emc-uid:"+self.uid
-    
         request = urllib2.Request(self.url+"/rest/namespace"+path)
-     
+
+        if listable_meta:
+            meta_string = self.__process_metadata(listable_meta)
+            headers += "x-emc-listable-meta:"+meta_string+"\n"
+            request.add_header("x-emc-listable-meta", meta_string)
+            
+        if non_listable_meta:
+            nl_meta_string = self.__process_metadata(non_listable_meta)
+            headers += "x-emc-meta:"+nl_meta_string+"\n"
+            request.add_header("x-emc-meta", nl_meta_string)
+
+        headers += "x-emc-uid:"+self.uid
+         
         if data:
             request.add_header("content-type", mime_type)
      
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
-     
-        if metadata:
-            request.add_header("x-emc-listable-meta", "test100/million=files")
-     
+          
         request.add_header("x-emc-uid", self.uid)
         request.add_data(data)
          
@@ -331,6 +333,15 @@ class EsuRestApi(object):
         hashout = base64.encodestring(hash).strip()                                                         
    
         return hashout
+    
+    def __process_metadata(self, metadata):
+        meta_string = ""
+        for k,v in metadata.iteritems():
+            meta_string += "%s=%s," % (k,v)
+        meta_string = meta_string[0:-1]                                                                 # Create a new string using a slice to remove the trailing comma                                                       
+        meta_string = ' '.join(meta_string.split())                                                     # Remove two or more spaces if they exist
+        
+        return meta_string
 
 
 class RequestWithMethod(urllib2.Request):                                                                   # Subclass the urllib2.Request object and then override the HTTP methom
