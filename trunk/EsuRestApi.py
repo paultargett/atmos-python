@@ -24,12 +24,6 @@ class EsuRestApi(object):
   
     # Creates an object using the Atmos object interface
     def create_object(self, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
-    
-        if listable_meta:
-            meta_string = self.__process_metadata(listable_meta)
-            
-        if non_listable_meta:
-            nl_meta_string = self.__process_metadata(non_listable_meta)
             
         if mime_type == None and data != None:
             mime_type = "application/octet-stream"
@@ -46,32 +40,45 @@ class EsuRestApi(object):
         headers += "/rest/objects\n"
         headers += "x-emc-date:"+now+"\n"
      
-        headers += "x-emc-uid:"+self.uid
         request = urllib2.Request(self.url+"/rest/objects")
      
         if data:
             request.add_header("content-type", mime_type)
+            request.add_data(data)
+
      
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
         
         if listable_meta:
+            meta_string = self.__process_metadata(listable_meta)
             headers += "x-emc-listable-meta:"+meta_string+"\n"
             request.add_header("x-emc-listable-meta", meta_string)
             
         if non_listable_meta:
+            nl_meta_string = self.__process_metadata(non_listable_meta)
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
      
+        headers += "x-emc-uid:"+self.uid
         request.add_header("x-emc-uid", self.uid)
-        request.add_data(data)
     
         hashout = self.__sign(headers)
      
-        object_id = self.__send_request(request, hashout, headers)
-
-        return object_id
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+            location = response.info().getheader('location')
+            search = re.search(self.ID_EXTRACTOR, location)
+            reg = search.groups() 
+            object_id = reg[0]
+            return object_id
  
     
     def create_object_on_path(self, path, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
@@ -82,17 +89,19 @@ class EsuRestApi(object):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "POST\n"
-     
+        
+        request = urllib2.Request(self.url+"/rest/namespace"+path)
+
         if data:
             headers += mime_type+"\n"
+            request.add_header("content-type", mime_type)
+
      
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/namespace"+path+"\n"
         headers += "x-emc-date:"+now+"\n"
-     
-        request = urllib2.Request(self.url+"/rest/namespace"+path)
-
+    
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
             headers += "x-emc-listable-meta:"+meta_string+"\n"
@@ -104,9 +113,6 @@ class EsuRestApi(object):
             request.add_header("x-emc-meta", nl_meta_string)
 
         headers += "x-emc-uid:"+self.uid
-         
-        if data:
-            request.add_header("content-type", mime_type)
      
         request.add_header("date", now)
         request.add_header("host", self.host)
