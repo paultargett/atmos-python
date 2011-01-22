@@ -137,6 +137,47 @@ class EsuRestApi(object):
             object_id = reg[0]
             return object_id
   
+    def list_objects(self, tag):
+        
+        if tag[0] == "/":
+            tag = tag[1:]
+            
+        mime_type = "application/octet-stream"
+         
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-include-meta:"+str(0)+"\n"
+        headers += "x-emc-tags:"+tag+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = urllib2.Request(self.url+"/rest/objects")
+        request.add_header("content-type", mime_type)
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-include-meta", 0)
+        request.add_header("x-emc-tags", tag)
+        request.add_header("x-emc-uid", self.uid)
+
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:
+            object_list = response.read()
+            return object_list
+    
     def list_directory(self, path):
       
         mime_type = "application/octet-stream"
@@ -144,9 +185,7 @@ class EsuRestApi(object):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "GET\n"
-     
-        headers += mime_type+"\n"
-     
+        headers += mime_type+"\n" 
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/namespace"+path+"\n"
@@ -297,12 +336,12 @@ class EsuRestApi(object):
         headers += "\n"
         headers += "\n"
         headers += now+"\n"
-        headers += "/rest/namespace/"+source+"\n"
+        headers += "/rest/namespace/"+source+"?rename"+"\n"
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-path:"+destination+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", source))
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", source+"?rename"))
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
@@ -321,6 +360,35 @@ class EsuRestApi(object):
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
 
+    def get_service_information(self):
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += "\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/service"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = urllib2.Request(self.url+"/rest/service")
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-uid", self.uid)
+
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:
+            body = response.read()
+            return body
                    
     #Actually send the request
     def __send_request(self, request, hashout, headers):
@@ -340,7 +408,8 @@ class EsuRestApi(object):
    
         return hashout
     
-    def __process_metadata(self, metadata):
+    
+    def __process_metadata(self, metadata):                                                             # Takes a dictionary of key/value pairs, strips more than one whitespace
         meta_string = ""
         for k,v in metadata.iteritems():
             meta_string += "%s=%s," % (k,v)
@@ -364,8 +433,7 @@ class RequestWithMethod(urllib2.Request):                                       
 #       We're also not doing range updates so large objects will be a problem at the moment.
    
     
-    def list_objects():
-        pass
+
     
     def list_objects_with_metadata():
         pass
@@ -406,8 +474,7 @@ class RequestWithMethod(urllib2.Request):                                       
     def get_system_metadata():
         pass
     
-    def get_service_information():
-        pass
+
  
 #
 #
