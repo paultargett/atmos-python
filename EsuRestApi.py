@@ -137,14 +137,16 @@ class EsuRestApi(object):
             object_id = reg[0]
             return object_id
   
-    def list_objects(self, tag):
+    def list_objects(self, metadata_key, include_meta = False):
         
-        if tag[0] == "/":
-            tag = tag[1:]
+        if metadata_key[0] == "/":
+            metadata_key = metadata_key[1:]
             
         mime_type = "application/octet-stream"
          
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+        request = urllib2.Request(self.url+"/rest/objects")
+    
     
         headers = "GET\n"
         headers += mime_type+"\n"
@@ -152,17 +154,18 @@ class EsuRestApi(object):
         headers += now+"\n"
         headers += "/rest/objects"+"\n"
         headers += "x-emc-date:"+now+"\n"
-        headers += "x-emc-include-meta:"+str(0)+"\n"
-        headers += "x-emc-tags:"+tag+"\n"
+        if include_meta:
+            headers += "x-emc-include-meta:"+str(1)+"\n"
+            request.add_header("x-emc-include-meta", str(1))
+
+        headers += "x-emc-tags:"+metadata_key+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = urllib2.Request(self.url+"/rest/objects")
         request.add_header("content-type", mime_type)
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
-        request.add_header("x-emc-include-meta", 0)
-        request.add_header("x-emc-tags", tag)
+        request.add_header("x-emc-tags", metadata_key)
         request.add_header("x-emc-uid", self.uid)
 
         hashout = self.__sign(headers)
@@ -362,6 +365,46 @@ class EsuRestApi(object):
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
+    
+    
+    def get_system_metadata(self, object_id, sys_tags = None):                                              # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"?metadata/system"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        
+        if sys_tags:
+            headers += "x-emc-tags:"+sys_tags+"\n"
+        
+        headers += "x-emc-uid:"+self.uid
+    
+        request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/system")
+        request.add_header("content-type", mime_type)
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-uid", self.uid)
+        request.add_header("x-emc-tags", sys_tags)
+
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+            system_meta = []
+            system_meta = response.info().getheader('x-emc-meta')
+            system_meta = dict(u.split("=") for u in system_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
+            return system_meta
 
     def get_service_information(self):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -438,8 +481,7 @@ class RequestWithMethod(urllib2.Request):                                       
     
 
     
-    def list_objects_with_metadata():
-        pass
+
     
     def get_listable_tags():
         pass
