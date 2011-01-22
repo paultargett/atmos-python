@@ -432,15 +432,19 @@ class EsuRestApi(object):
         except urllib2.HTTPError as e:
             error_message = e.read()
             print error_message
-         
-        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            nl_user_meta = []
-            nl_user_meta = response.info().getheader('x-emc-meta')
-            nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
+        
+        # Need to handle conditions where either listable or non-listable metadata is not present
+        else:                                                                       # If there was no HTTPError, parse the location header in the response body to get the object_id
+            nl_user_meta = {}
+            listable_user_meta = {}
             
-            listable_user_meta = []
-            listable_user_meta = response.info().getheader('x-emc-listable-meta')
-            listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
+            if response.info().getheader('x-emc-meta'):
+                nl_user_meta = response.info().getheader('x-emc-meta')
+                nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
+            
+            if response.info().getheader('x-emc-listable-meta'):
+                listable_user_meta = response.info().getheader('x-emc-listable-meta')
+                listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
             
             return nl_user_meta, listable_user_meta
     
@@ -483,6 +487,48 @@ class EsuRestApi(object):
             system_meta = response.info().getheader('x-emc-meta')
             system_meta = dict(u.split("=") for u in system_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
             return system_meta
+    
+    def get_listable_tags(self, metadata_key = None):
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects"+"?listabletags"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        
+        request = urllib2.Request(self.url+"/rest/objects"+"?listabletags")
+
+        if metadata_key:
+            if metadata_key[0] == "/":
+                metadata_key = metadata_key[1:]
+            headers += "x-emc-tags:"+metadata_key+"\n"
+            request.add_header("x-emc-tags", metadata_key)
+
+        headers += "x-emc-uid:"+self.uid
+    
+        request.add_header("content-type", mime_type)
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-uid", self.uid)
+        
+
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+            listable_tags = []
+            listable_tags = response.info().getheader('x-emc-listable-tags')
+            return listable_tags
 
     def get_service_information(self):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -571,9 +617,6 @@ class RequestWithMethod(urllib2.Request):                                       
         pass
     
     def update_object():
-        pass
-    
-    def get_user_metadata():
         pass
     
     def get_acl():
