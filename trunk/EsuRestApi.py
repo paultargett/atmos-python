@@ -516,8 +516,6 @@ class RequestWithMethod(urllib2.Request):                                       
     def restore_version():
         pass
     
-    def get_system_metadata():
-        pass
     
 
  
