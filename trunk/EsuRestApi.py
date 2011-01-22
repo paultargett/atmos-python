@@ -298,7 +298,10 @@ class EsuRestApi(object):
     
     
     def create_directory(self, dir_path):
-      
+        
+        if dir_path[-1] != "/":                                                 # Add a slash at the end if they didn't include one
+            dir_path += "/"
+        
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "POST\n"
