@@ -403,7 +403,46 @@ class EsuRestApi(object):
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
+        
+        
+    def get_user_metadata(self, object_id):                                              # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"?metadata/user"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/user")
+        request.add_header("content-type", mime_type)
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-uid", self.uid)
 
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
+        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+            nl_user_meta = []
+            nl_user_meta = response.info().getheader('x-emc-meta')
+            nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
+            
+            listable_user_meta = []
+            listable_user_meta = response.info().getheader('x-emc-listable-meta')
+            listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
+            
+            return nl_user_meta, listable_user_meta
     
     
     def get_system_metadata(self, object_id, sys_tags = None):                                              # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
@@ -541,12 +580,7 @@ class RequestWithMethod(urllib2.Request):                                       
         pass
     
     def set_acl():
-        pass 
-  
-    def delete_user_metadata():
-        pass
-    
-    
+        pass     
     
     # Atmos 1.3.x features
     def list_versions():
