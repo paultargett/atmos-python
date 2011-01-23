@@ -147,13 +147,13 @@ class EsuRestApi(object):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
         request = urllib2.Request(self.url+"/rest/objects")
     
-    
         headers = "GET\n"
         headers += mime_type+"\n"
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/objects"+"\n"
         headers += "x-emc-date:"+now+"\n"
+        
         if include_meta:
             headers += "x-emc-include-meta:"+str(1)+"\n"
             request.add_header("x-emc-include-meta", str(1))
@@ -248,19 +248,25 @@ class EsuRestApi(object):
             return response
 
       
-    def read_object(self, object_id):
+    def read_object(self, object_id, extent = None):
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-    
+        request = urllib2.Request(self.url+"/rest/objects/"+object_id)
+        
         headers = "GET\n"
         headers += mime_type+"\n"
-        headers += "\n"
+        
+        if extent:
+            headers += "Bytes="+extent+"\n"
+            request.add_header("Range", "Bytes="+extent)
+        else:
+            headers += "\n"
+
         headers += now+"\n"
         headers += "/rest/objects/"+object_id+"\n"
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = urllib2.Request(self.url+"/rest/objects/"+object_id)
         request.add_header("content-type", mime_type)
         request.add_header("date", now)
         request.add_header("host", self.host)
@@ -643,10 +649,6 @@ class RequestWithMethod(urllib2.Request):                                       
 #TODO:  There's a lot that could be added so that this wrapper is in parity with the other wrappers
 #       We're also not doing range updates so large objects will be a problem at the moment.
    
-    
-    
-    def set_user_metadata():
-        pass
     
     def update_object():
         pass
