@@ -285,6 +285,54 @@ class EsuRestApi(object):
         else:
             body = response.read()
             return body
+    
+    def update_object(self, object_id, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+            
+        mime_type = "application/octet-stream" 
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "PUT\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"\n"
+        headers += "x-emc-date:"+now+"\n"
+     
+        request = RequestWithMethod("PUT", "%s/%s" % (self.url+"/rest/objects", object_id))
+        request.add_header("content-type", mime_type)
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        
+        if data:
+            request.add_data(data)
+
+        
+        if extent:
+            print "it thinks this is the extent"
+        
+        if listable_meta:
+            meta_string = self.__process_metadata(listable_meta)
+            headers += "x-emc-listable-meta:"+meta_string+"\n"
+            request.add_header("x-emc-listable-meta", meta_string)
+            
+        if non_listable_meta:
+            nl_meta_string = self.__process_metadata(non_listable_meta)
+            headers += "x-emc-meta:"+nl_meta_string+"\n"
+            request.add_header("x-emc-meta", nl_meta_string)
+     
+        headers += "x-emc-uid:"+self.uid
+        request.add_header("x-emc-uid", self.uid)
+    
+        hashout = self.__sign(headers)
+     
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            print error_message
+         
         
     def get_shareable_url(self, object_id, expiration):
         uid_dict = {}
