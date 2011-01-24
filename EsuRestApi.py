@@ -287,30 +287,36 @@ class EsuRestApi(object):
             return body
     
     def update_object(self, object_id, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
-            
+        
+        if extent and not data:
+            raise EsuException("Data must not be empty if extent is set.")
+              
         mime_type = "application/octet-stream" 
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-    
+        request = RequestWithMethod("PUT", "%s/%s" % (self.url+"/rest/objects", object_id))
+        
         headers = "PUT\n"
         headers += mime_type+"\n"
-        headers += "\n"
-        headers += now+"\n"
-        headers += "/rest/objects/"+object_id+"\n"
-        headers += "x-emc-date:"+now+"\n"
-     
-        request = RequestWithMethod("PUT", "%s/%s" % (self.url+"/rest/objects", object_id))
-        request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
+        
+        if extent:
+            headers += "Bytes="+extent+"\n"
+            request.add_header("Range", "Bytes="+extent)
         
         if data:
             request.add_data(data)
 
+        else:
+            headers += "\n"
         
-        if extent:
-            print "it thinks this is the extent"
-        
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"\n"
+        headers += "x-emc-date:"+now+"\n"
+     
+        request.add_header("content-type", mime_type)
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+                    
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
             headers += "x-emc-listable-meta:"+meta_string+"\n"
