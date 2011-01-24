@@ -12,7 +12,7 @@ class EsuRestApi(object):
     ID_EXTRACTOR = "/[0-9a-zA-Z]+/objects/([0-9a-f]{44})"
  
     def __init__(self, host, port, uid, secret):
-        """ Constructor that sets up the URL and appropriate credentials used to sign requests """
+        """ Constructor that sets up the URL and appropriate credentials used to sign HTTP requests """
         
         self.host, self.port, self.uid, self.secret = host, port, uid, secret
          
@@ -44,7 +44,7 @@ class EsuRestApi(object):
     
         headers = "POST\n"
         
-        # data cannot be empty or set to "" or else urllib2.request sets the method to GET causing signature mismatch
+                                                                                                                # data cannot be empty or set to "" or else urllib2.request sets the method to GET causing signature mismatch
         if data:
             headers += mime_type+"\n"
 
@@ -85,7 +85,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
             search = re.search(self.ID_EXTRACTOR, location)
             reg = search.groups() 
@@ -151,7 +151,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
             search = re.search(self.ID_EXTRACTOR, location)
             reg = search.groups() 
@@ -279,7 +279,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
 
       
@@ -431,7 +431,7 @@ class EsuRestApi(object):
         
         """
     
-        if dir_path[-1] != "/":                                                 # Add a slash at the end if they didn't include one
+        if dir_path[-1] != "/":                                                                                 # Add a slash at the end if they didn't include one
             dir_path += "/"
         
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -459,7 +459,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
             search = re.search(self.ID_EXTRACTOR, location)
             reg = search.groups() 
@@ -505,7 +505,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
 
     def set_user_metadata(self, object_id, listable_meta = None, non_listable_meta = None):
@@ -596,11 +596,11 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
         
         
-    def get_user_metadata(self, object_id):                                                                 # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+    def get_user_metadata(self, object_id):                                                                     
         """ Returns listable and/or non-listable user metadata in the form of a Python dictionary ( Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} )
         based on object_id.  Returns one or more empty dictionaries if no metadata exists.
         
@@ -636,14 +636,13 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
         
-        # Need to handle conditions where either listable or non-listable metadata is not present
-        else:                                                                       # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                       
             nl_user_meta = {}
             listable_user_meta = {}
             
             if response.info().getheader('x-emc-meta'):
                 nl_user_meta = response.info().getheader('x-emc-meta')
-                nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
+                nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))                              # Create a Python dictionary of the data in the header and return it.
             
             if response.info().getheader('x-emc-listable-meta'):
                 listable_user_meta = response.info().getheader('x-emc-listable-meta')
@@ -652,7 +651,7 @@ class EsuRestApi(object):
             return listable_user_meta, nl_user_meta
     
     
-    def get_system_metadata(self, object_id, sys_tags = None):                                              # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+    def get_system_metadata(self, object_id, sys_tags = None):                                                  
         """ Returns system metadata in the form of a Python dictionary based on object_id
         Optionally filter the results by passing in one or more system metadata tags
         
@@ -695,10 +694,10 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                   
             system_meta = []
             system_meta = response.info().getheader('x-emc-meta')
-            system_meta = dict(u.split("=") for u in system_meta.split(","))    # Create a Python dictionary of the data in the header and return it.
+            system_meta = dict(u.split("=") for u in system_meta.split(","))                                    # Create a Python dictionary of the data in the header and return it.
             return system_meta
     
     def get_listable_tags(self, metadata_key = None):
@@ -746,7 +745,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   
             listable_tags = []
             listable_tags = response.info().getheader('x-emc-listable-tags')
             return listable_tags
@@ -813,13 +812,13 @@ class EsuRestApi(object):
         meta_string = ""
         for k,v in metadata.iteritems():
             meta_string += "%s=%s," % (k,v) 
-        meta_string = meta_string[0:-1]                                                                                 # Create a new string using a slice to remove the trailing comma                                                       
-        meta_string = ' '.join(meta_string.split())                                                                     # Remove two or more spaces if they exist
+        meta_string = meta_string[0:-1]                                                                         # Create a new string using a slice to remove the trailing comma                                                       
+        meta_string = ' '.join(meta_string.split())                                                             # Remove two or more spaces if they exist
         
         return meta_string
 
 
-class RequestWithMethod(urllib2.Request):                                                                               # Subclass the urllib2.Request object and then override the HTTP methom
+class RequestWithMethod(urllib2.Request):                                                                       # Subclass the urllib2.Request object and then override the HTTP methom
 
     def __init__(self, method, *args, **kwargs):
         self._method = method
