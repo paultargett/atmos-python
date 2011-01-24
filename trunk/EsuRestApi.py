@@ -26,7 +26,6 @@ class EsuRestApi(object):
             self.url = urlparse.urlunparse(self.urlparts)
  
   
-    # Creates an object using the Atmos object interface
     def create_object(self, data, listable_meta = None, non_listable_meta = None, mime_type = None):
         """ Creates an object in the object interface and returns an object_id.
         
@@ -342,10 +341,7 @@ class EsuRestApi(object):
         data -- actual or partial object content.  (default None)
 
         """
-        
-        if extent and not data:
-            raise EsuException("Data must not be empty if extent is set.")
-              
+    
         mime_type = "application/octet-stream" 
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
         request = RequestWithMethod("PUT", "%s/%s" % (self.url+"/rest/objects", object_id))
@@ -466,7 +462,7 @@ class EsuRestApi(object):
             object_id = reg[0]
             return object_id
     
-    # Renames won't work before Atmos 1.3.x -- Need to test this on those versions.
+    # Renames won't work before Atmos 1.3.x
     def rename_object(self, source, destination, force):
         """  Renames an object in the namespace interface.
         
@@ -807,7 +803,7 @@ class EsuRestApi(object):
     
     
     def __process_metadata(self, metadata):                                                             
-        # Private method used to strip more than one whitespace and processed dictionary of key/value pairs into the string used in the HTTP request
+        # Private method used to strip more than one whitespace and process dictionary of key/value pairs into the string used in the HTTP request
         
         meta_string = ""
         for k,v in metadata.iteritems():
