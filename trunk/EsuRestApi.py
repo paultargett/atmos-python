@@ -5,11 +5,15 @@ import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
 
+DEBUG = False
+
 class EsuRestApi(object):
  
     ID_EXTRACTOR = "/[0-9a-zA-Z]+/objects/([0-9a-f]{44})"
  
     def __init__(self, host, port, uid, secret):
+        """ Constructor that sets up the URL and appropriate credentials used to sign requests """
+        
         self.host, self.port, self.uid, self.secret = host, port, uid, secret
          
         if self.port == 443:
@@ -23,18 +27,27 @@ class EsuRestApi(object):
  
   
     # Creates an object using the Atmos object interface
-    def create_object(self, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
-            
+    def create_object(self, data, listable_meta = None, non_listable_meta = None, mime_type = None):
+        """ Creates an object in the object interface and returns an object_id.
+        
+        Keyword arguments:
+        listable_meta -- a dictionary containing key/value pairs. Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} (default None)
+        non_listable_meta -- a dictionary containing key/value pairs. Ex. {"nl_key1/patriots" : "value", "nl_key2" : "value2", "nl_key3" : "value3"} (default None)
+        data -- the object data itself, must not be empty
+        
+        """
+        
         if mime_type == None and data != None:
             mime_type = "application/octet-stream"
          
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "POST\n"
-     
+        
+        # data cannot be empty or set to "" or else urllib2.request sets the method to GET causing signature mismatch
         if data:
             headers += mime_type+"\n"
-     
+
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/objects\n"
@@ -46,7 +59,6 @@ class EsuRestApi(object):
             request.add_header("content-type", mime_type)
             request.add_data(data)
 
-     
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
@@ -71,7 +83,7 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
@@ -82,14 +94,23 @@ class EsuRestApi(object):
  
     
     def create_object_on_path(self, path, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+        """ Creates an object in the namespace interface and returns an object_id.
+        
+        Keyword arguments:
+        path -- the path in the namespace where the object should be created.  Non-existent directories will be automatically created.  
+        listable_meta -- a dictionary containing key/value pairs. Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} (default None)
+        non_listable_meta -- a dictionary containing key/value pairs. Ex. {"nl_key1/patriots" : "value", "nl_key2" : "value2", "nl_key3" : "value3"} (default None)
+        data -- the object data itself, must not be empty
+        
+        """
+
      
         if mime_type == None and data != None:
             mime_type = "application/octet-stream"
          
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
-        headers = "POST\n"
-        
+        headers = "POST\n" 
         request = urllib2.Request(self.url+"/rest/namespace"+path)
 
         if data:
@@ -128,7 +149,7 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
@@ -138,6 +159,13 @@ class EsuRestApi(object):
             return object_id
   
     def list_objects(self, metadata_key, include_meta = False):
+        """ Takes a listable metadata key and returns a list of objects that match.
+        
+        Keyword arguments:
+        metadata_key -- the Atmos key portion of the key/value pair
+        include_meta -- optionally returns an object list with system and user metadata (default False)
+
+        """
         
         if metadata_key[0] == "/":
             metadata_key = metadata_key[1:]
@@ -175,13 +203,19 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:
             object_list = response.read()
             return object_list
     
     def list_directory(self, path):
+        """ Lists objects in the namespace based on path
+        
+        Keyword arguments:
+        path -- the path used to generate a list of objects
+        
+        """
       
         mime_type = "application/octet-stream"
          
@@ -209,13 +243,14 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:
             dir_list = response.read()
             return dir_list
       
     def delete_object(self, object_id):
+        """ Deletes objects based on object_id. """
       
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -242,13 +277,21 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
 
       
     def read_object(self, object_id, extent = None):
+        """  Returns an entire object or a partial object based on a byte range.
+        
+        Keyword arguments:
+        object_id -- the object ID of the object to be read
+        extent -- a byte range used to read portions of an object.  Not setting the extent returns the entire object (Default None)
+        
+        """
+        
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
         request = urllib2.Request(self.url+"/rest/objects/"+object_id)
@@ -280,13 +323,25 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:
             body = response.read()
             return body
     
     def update_object(self, object_id, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+        """ Updates an existing object with listable metadata, non-listable metadata, and/or bytes of actual object data based on range.
+        If the extent parameter is excluded and data is set to an empty string the object will be overwritten with an empty object.  If the extent
+        parameter is excluded and the data parameter contains data the entire object is overwritten with new contents.
+        
+        Keyword arguments:
+        object_id -- the object to update 
+        extent -- the portion of the object to modify (default None)
+        listable_meta -- a dictionary containing key/value pairs Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} (default None)
+        non_listable_meta -- a dictionary containing key/value pairs {"nl_key1/patriots" : "value", "nl_key2" : "value2", "nl_key3" : "value3"} (default None)
+        data -- actual or partial object content.  (default None)
+
+        """
         
         if extent and not data:
             raise EsuException("Data must not be empty if extent is set.")
@@ -337,10 +392,18 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         
     def get_shareable_url(self, object_id, expiration):
+        """ Generates a pre-signed URL that is accessible to non-Atmos users
+        
+        Keyword arguments:
+        object_id -- the object to which you want to provide access
+        expiration -- Epoch time in the future that determines how long a shareable URL is valid
+        
+        """
+        
         uid_dict = {}
         uid_dict["uid"] = self.uid
         encoded_uid = urllib.urlencode(uid_dict)
@@ -361,7 +424,13 @@ class EsuRestApi(object):
     
     
     def create_directory(self, dir_path):
+        """ Creates a directory in the namespace interface.  Returns an object_id.
         
+        Keyword arguments:
+        dir_path -- directory path with no leading slash
+        
+        """
+    
         if dir_path[-1] != "/":                                                 # Add a slash at the end if they didn't include one
             dir_path += "/"
         
@@ -388,7 +457,7 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
@@ -399,6 +468,15 @@ class EsuRestApi(object):
     
     # Renames won't work before Atmos 1.3.x -- Need to test this on those versions.
     def rename_object(self, source, destination, force):
+        """  Renames an object in the namespace interface.
+        
+        Keyword arguments:
+        
+        source -- The source path to the object Ex. path/to/object/foo.doc
+        destination -- The destination path to the object Ex. path/to/object/bar.doc
+        force -- If set to True, forces a rename
+        
+        """
       
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -425,13 +503,22 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
 
     def set_user_metadata(self, object_id, listable_meta = None, non_listable_meta = None):
-            
+        """ Updates an existing object with listable and/or non-listable user metadata
+        
+        Keyword arguments:
+        
+        object_id -- The object ID of the object that should be updated with user metadata
+        listable_meta -- a dictionary containing key/value pairs Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} (default None)
+        non_listable_meta -- a dictionary containing key/value pairs {"nl_key1/patriots" : "value", "nl_key2" : "value2", "nl_key3" : "value3"} (default None)
+        
+        """
+        
         mime_type = "application/octet-stream" 
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -469,10 +556,17 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
             
     def delete_user_metadata(self, object_id, metadata_key):
-      
+        """ Takes a listable metadata keys and returns a list of objects that match.
+        
+        Keyword arguments:
+        object_id -- The object ID of the object whose metadata should be deleted
+        metadata_key -- the key portion of the Atmos metadata key/value pair
+
+        """
+        
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -500,13 +594,21 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                                               # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
         
         
-    def get_user_metadata(self, object_id):                                              # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+    def get_user_metadata(self, object_id):                                                                 # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+        """ Returns listable and/or non-listable user metadata in the form of a Python dictionary ( Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} )
+        based on object_id.  Returns one or more empty dictionaries if no metadata exists.
+        
+        Keyword arguments:
+        object_id -- The object ID of the object whose metadata should be returned 
+        
+        """
+        
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -532,7 +634,7 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
         
         # Need to handle conditions where either listable or non-listable metadata is not present
         else:                                                                       # If there was no HTTPError, parse the location header in the response body to get the object_id
@@ -547,10 +649,20 @@ class EsuRestApi(object):
                 listable_user_meta = response.info().getheader('x-emc-listable-meta')
                 listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
             
-            return nl_user_meta, listable_user_meta
+            return listable_user_meta, nl_user_meta
     
     
     def get_system_metadata(self, object_id, sys_tags = None):                                              # Take an object_id and an optional string of metadata tags that should be returned, else everything is returned
+        """ Returns system metadata in the form of a Python dictionary based on object_id
+        Optionally filter the results by passing in one or more system metadata tags
+        
+        Keyword arguments:  
+        object_id -- The object ID of the object whose metadata should be returned 
+        sys_tags -- List of system tags to be returned in the response Ex. (sys_tags = "atime,uid")
+        
+        """
+        
+        
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -581,7 +693,7 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             system_meta = []
@@ -590,6 +702,14 @@ class EsuRestApi(object):
             return system_meta
     
     def get_listable_tags(self, metadata_key = None):
+        """ Returns all the top level listable keys for which the given UID has access to in their namespace.
+        Takes an optional listable metadata key and returns a list of child keys.
+        
+        Keyword arguments:
+        metadata_key -- the Atmos key portion of the key/value pair  (Default None)
+
+        """
+        
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -624,7 +744,7 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             listable_tags = []
@@ -632,6 +752,8 @@ class EsuRestApi(object):
             return listable_tags
 
     def get_service_information(self):
+        """ Returns Atmos version information. """
+        
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "GET\n"
@@ -655,24 +777,29 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError as e:
             error_message = e.read()
-            print error_message
+            return error_message
          
         else:
             body = response.read()
             return body
                    
-    #Actually send the request
+    
     def __send_request(self, request, hashout, headers):
+        # Private method to actually send the request
+        
         headers += ("\nx-emc-signature:"+hashout)
-        print headers+"\n"
+        if DEBUG:
+            print headers+"\n"
         request.add_header("x-emc-signature", hashout)
 
         response = urllib2.urlopen(request)
       
         return response
     
-    # Private method used to sign HTTP requests    
+    
     def __sign(self, headers):
+        # Private method used to sign HTTP requests
+        
         decodedkey = base64.b64decode(self.secret)                                                          
         hash = hmac.new(decodedkey, headers, hashlib.sha1).digest()                                         
         hashout = base64.encodestring(hash).strip()                                                         
@@ -680,17 +807,19 @@ class EsuRestApi(object):
         return hashout
     
     
-    def __process_metadata(self, metadata):                                                             # Takes a dictionary of key/value pairs, strips more than one whitespace
+    def __process_metadata(self, metadata):                                                             
+        # Private method used to strip more than one whitespace and processed dictionary of key/value pairs into the string used in the HTTP request
+        
         meta_string = ""
         for k,v in metadata.iteritems():
-            meta_string += "%s=%s," % (k,v)
-        meta_string = meta_string[0:-1]                                                                 # Create a new string using a slice to remove the trailing comma                                                       
-        meta_string = ' '.join(meta_string.split())                                                     # Remove two or more spaces if they exist
+            meta_string += "%s=%s," % (k,v) 
+        meta_string = meta_string[0:-1]                                                                                 # Create a new string using a slice to remove the trailing comma                                                       
+        meta_string = ' '.join(meta_string.split())                                                                     # Remove two or more spaces if they exist
         
         return meta_string
 
 
-class RequestWithMethod(urllib2.Request):                                                                   # Subclass the urllib2.Request object and then override the HTTP methom
+class RequestWithMethod(urllib2.Request):                                                                               # Subclass the urllib2.Request object and then override the HTTP methom
 
     def __init__(self, method, *args, **kwargs):
         self._method = method
@@ -700,13 +829,8 @@ class RequestWithMethod(urllib2.Request):                                       
         return self._method
 
 
-#TODO:  There's a lot that could be added so that this wrapper is in parity with the other wrappers
-#       We're also not doing range updates so large objects will be a problem at the moment.
-   
-    
-    def update_object():
-        pass
-    
+#TODO:
+  
     def get_acl():
         pass
     
