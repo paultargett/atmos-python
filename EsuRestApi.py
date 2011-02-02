@@ -103,6 +103,8 @@ class EsuRestApi(object):
         
         """
 
+        if path[0] != "/":
+            path = "/" + path
      
         if mime_type == None and data != None:
             mime_type = "application/octet-stream"
