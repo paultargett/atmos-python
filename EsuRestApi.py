@@ -5,7 +5,7 @@ import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
 
-DEBUG = False
+DEBUG = True
 
 class EsuRestApi(object):
  
@@ -677,10 +677,14 @@ class EsuRestApi(object):
     
         request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/system")
         request.add_header("content-type", mime_type)
+        
         request.add_header("date", now)
         request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
         request.add_header("x-emc-uid", self.uid)
+        
+        #request = self.__add_headers(request, now)
+
         request.add_header("x-emc-tags", sys_tags)
 
         hashout = self.__sign(headers)
@@ -728,11 +732,8 @@ class EsuRestApi(object):
         headers += "x-emc-uid:"+self.uid
     
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
         
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
@@ -762,10 +763,7 @@ class EsuRestApi(object):
         headers += "x-emc-uid:"+self.uid
     
         request = urllib2.Request(self.url+"/rest/service")
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
@@ -814,6 +812,15 @@ class EsuRestApi(object):
         meta_string = ' '.join(meta_string.split())                                                             # Remove two or more spaces if they exist
         
         return meta_string
+    
+    def __add_headers(self, request, now):
+        
+        request.add_header("date", now)
+        request.add_header("host", self.host)
+        request.add_header("x-emc-date", now)
+        request.add_header("x-emc-uid", self.uid)
+        
+        return request
 
 
 class RequestWithMethod(urllib2.Request):                                                                       # Subclass the urllib2.Request object and then override the HTTP methom
