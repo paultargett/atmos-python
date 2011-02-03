@@ -117,7 +117,7 @@ class EsuRestApi(object):
      
         headers += "\n"
         headers += now+"\n"
-        headers += "/rest/namespace"+path+"\n"
+        headers += "/rest/namespace"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
     
         if listable_meta:
@@ -266,6 +266,40 @@ class EsuRestApi(object):
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             return response
 
+
+    def delete_directory(self, path):
+        """ Deletes empty directories. """
+      
+        if path[0] != "/":
+            path = "/" + path
+        
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "DELETE\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/namespace/"+str.lower(path)+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = RequestWithMethod("DELETE", "%s/%s" % (self.url+"/rest/namespace", path))
+        request.add_header("content-type", mime_type)
+        request = self.__add_headers(request, now)
+        
+        hashout = self.__sign(headers)
+
+        try:
+            response = self.__send_request(request, hashout, headers)
+
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            return error_message
+         
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+            return response
+        
       
     def read_object(self, object_id, extent = None):
         """  Returns an entire object or a partial object based on a byte range.
@@ -396,16 +430,16 @@ class EsuRestApi(object):
         return url
     
     
-    def create_directory(self, dir_path):
+    def create_directory(self, path):
         """ Creates a directory in the namespace interface.  Returns an object_id.
         
         Keyword arguments:
-        dir_path -- directory path with no leading slash
+        path -- directory path with no leading slash
         
         """
     
-        if dir_path[-1] != "/":                                                                                 # Add a slash at the end if they didn't include one
-            dir_path += "/"
+        if path[-1] != "/":                                                                                 # Add a slash at the end if they didn't include one
+            path += "/"
         
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
@@ -413,11 +447,11 @@ class EsuRestApi(object):
         headers += "\n"
         headers += "\n"
         headers += now+"\n"
-        headers += "/rest/namespace/"+dir_path+"\n"
+        headers += "/rest/namespace/"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", dir_path))
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", path))
         request = self.__add_headers(request, now)
     
         hashout = self.__sign(headers)
