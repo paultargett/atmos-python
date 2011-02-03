@@ -57,10 +57,6 @@ class EsuRestApi(object):
         if data:
             request.add_header("content-type", mime_type)
             request.add_data(data)
-
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
         
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
@@ -73,8 +69,8 @@ class EsuRestApi(object):
             request.add_header("x-emc-meta", nl_meta_string)
      
         headers += "x-emc-uid:"+self.uid
-        request.add_header("x-emc-uid", self.uid)
-    
+        request = self.__add_headers(request, now)
+
         hashout = self.__sign(headers)
      
         try:
@@ -136,11 +132,7 @@ class EsuRestApi(object):
 
         headers += "x-emc-uid:"+self.uid
      
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-          
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
         request.add_data(data)
          
         hashout = self.__sign(headers)
@@ -191,11 +183,8 @@ class EsuRestApi(object):
         headers += "x-emc-uid:"+self.uid
     
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
         request.add_header("x-emc-tags", metadata_key)
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
@@ -232,10 +221,7 @@ class EsuRestApi(object):
     
         request = urllib2.Request(self.url+"/rest/namespace"+path)
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
@@ -266,11 +252,8 @@ class EsuRestApi(object):
     
         request = RequestWithMethod("DELETE", "%s/%s" % (self.url+"/rest/objects", object_id))
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
-    
+        request = self.__add_headers(request, now)
+        
         hashout = self.__sign(headers)
 
         try:
@@ -312,10 +295,7 @@ class EsuRestApi(object):
         headers += "x-emc-uid:"+self.uid
     
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
@@ -366,9 +346,7 @@ class EsuRestApi(object):
         headers += "x-emc-date:"+now+"\n"
      
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
+        request = self.__add_headers(request, now)
                     
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
@@ -381,7 +359,6 @@ class EsuRestApi(object):
             request.add_header("x-emc-meta", nl_meta_string)
      
         headers += "x-emc-uid:"+self.uid
-        request.add_header("x-emc-uid", self.uid)
     
         hashout = self.__sign(headers)
      
@@ -443,10 +420,7 @@ class EsuRestApi(object):
         headers += "x-emc-uid:"+self.uid
     
         request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", dir_path))
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
     
         hashout = self.__sign(headers)
 
@@ -488,12 +462,9 @@ class EsuRestApi(object):
         headers += "x-emc-uid:"+self.uid
     
         request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", source+"?rename"))
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
         request.add_header("x-emc-path", destination)
-        request.add_header("x-emc-uid", self.uid)
-    
+        request = self.__add_headers(request, now)
+
         hashout = self.__sign(headers)
 
         try:
@@ -527,13 +498,10 @@ class EsuRestApi(object):
         headers += "/rest/objects/"+object_id+"?metadata/user"+"\n"
         headers += "x-emc-date:"+now+"\n"
      
-        #request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/user")
         request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/objects", object_id+"?metadata/user"))
-        request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        
+        request.add_header("content-type", mime_type) 
+        request = self.__add_headers(request, now)
+  
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
             headers += "x-emc-listable-meta:"+meta_string+"\n"
@@ -545,8 +513,7 @@ class EsuRestApi(object):
             request.add_header("x-emc-meta", nl_meta_string)
      
         headers += "x-emc-uid:"+self.uid
-        request.add_header("x-emc-uid", self.uid)
-    
+        
         hashout = self.__sign(headers)
      
         try:
@@ -579,12 +546,10 @@ class EsuRestApi(object):
     
         request = RequestWithMethod("DELETE", "%s/%s" % (self.url+"/rest/objects", object_id+"?metadata/user"))
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
         request.add_header("x-emc-tags", metadata_key)
-        request.add_header("x-emc-uid", self.uid)
-    
+        
+        request = self.__add_headers(request, now)
+        
         hashout = self.__sign(headers)
 
         try:
@@ -620,10 +585,7 @@ class EsuRestApi(object):
     
         request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/user")
         request.add_header("content-type", mime_type)
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
@@ -669,23 +631,17 @@ class EsuRestApi(object):
         headers += now+"\n"
         headers += "/rest/objects/"+object_id+"?metadata/system"+"\n"
         headers += "x-emc-date:"+now+"\n"
+
+        request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/system")
         
         if sys_tags:
             headers += "x-emc-tags:"+sys_tags+"\n"
-        
+            request.add_header("x-emc-tags", sys_tags)
+
         headers += "x-emc-uid:"+self.uid
     
-        request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?metadata/system")
-        request.add_header("content-type", mime_type)
-        
-        request.add_header("date", now)
-        request.add_header("host", self.host)
-        request.add_header("x-emc-date", now)
-        request.add_header("x-emc-uid", self.uid)
-        
-        #request = self.__add_headers(request, now)
-
-        request.add_header("x-emc-tags", sys_tags)
+        request.add_header("content-type", mime_type)        
+        request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
       
