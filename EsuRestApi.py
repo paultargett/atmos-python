@@ -337,10 +337,8 @@ class EsuRestApi(object):
         
         if data:
             request.add_data(data)
-
-        else:
-            headers += "\n"
         
+        headers += "\n"
         headers += now+"\n"
         headers += "/rest/objects/"+object_id+"\n"
         headers += "x-emc-date:"+now+"\n"
@@ -364,7 +362,7 @@ class EsuRestApi(object):
      
         try:
             response = self.__send_request(request, hashout, headers)
-      
+        
         except urllib2.HTTPError as e:
             error_message = e.read()
             return error_message
