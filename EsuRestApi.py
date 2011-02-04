@@ -440,6 +440,10 @@ class EsuRestApi(object):
     
         if path[-1] != "/":                                                                                 # Add a slash at the end if they didn't include one
             path += "/"
+            
+        if path[0] == "/":
+            path = path[1:]
+            
         
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
