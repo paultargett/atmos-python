@@ -72,7 +72,7 @@ class EsuRestApi(object):
         request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
-     
+             
         try:
             response = self.__send_request(request, hashout, headers)
       
@@ -108,7 +108,7 @@ class EsuRestApi(object):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "POST\n" 
-        request = urllib2.Request(self.url+"/rest/namespace"+path)
+        request = urllib2.Request(self.url+"/rest/namespace"+urllib.quote(path))
 
         if data:
             headers += mime_type+"\n"
@@ -219,7 +219,7 @@ class EsuRestApi(object):
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = urllib2.Request(self.url+"/rest/namespace"+path)
+        request = urllib2.Request(self.url+"/rest/namespace"+urllib.quote(path))
         request.add_header("content-type", mime_type)
         request = self.__add_headers(request, now)
 
@@ -284,7 +284,7 @@ class EsuRestApi(object):
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = RequestWithMethod("DELETE", "%s/%s" % (self.url+"/rest/namespace", path))
+        request = RequestWithMethod("DELETE", "%s/%s" % (self.url+"/rest/namespace", urllib.quote(path)))
         request.add_header("content-type", mime_type)
         request = self.__add_headers(request, now)
         
@@ -455,7 +455,7 @@ class EsuRestApi(object):
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-uid:"+self.uid
     
-        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", path))
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", urllib.quote(path)))
         request = self.__add_headers(request, now)
     
         hashout = self.__sign(headers)
