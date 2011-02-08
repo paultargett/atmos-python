@@ -541,9 +541,9 @@ class EsuRestApi(object):
         headers += "\n"
         headers += "\n"
         headers += now+"\n"
-        headers += "/rest/namespace/"+source+"?rename"+"\n"
+        headers += "/rest/namespace/"+str.lower(source)+"?rename"+"\n"
         headers += "x-emc-date:"+now+"\n"
-        headers += "x-emc-path:"+destination+"\n"
+        headers += "x-emc-path:"+str.lower(destination)+"\n"
         headers += "x-emc-uid:"+self.uid
     
         request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", source+"?rename"))
