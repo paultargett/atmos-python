@@ -215,7 +215,7 @@ class EsuRestApi(object):
         headers += mime_type+"\n" 
         headers += "\n"
         headers += now+"\n"
-        headers += "/rest/namespace"+path+"\n"
+        headers += "/rest/namespace"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
         headers += "x-emc-uid:"+self.uid
     
