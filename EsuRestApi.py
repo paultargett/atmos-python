@@ -343,6 +343,53 @@ class EsuRestApi(object):
         else:
             body = response.read()
             return body
+        
+        
+    def read_object_from_path(self, path, extent = None):
+        """  Returns an entire object or a partial object based on a byte range from the namespace interface.
+        
+        Keyword arguments:
+        path -- the complete path to the object to be read
+        extent -- a byte range used to read portions of an object.  Not setting the extent returns the entire object (Default None)
+        
+        """
+        
+        if path[0] == "/":
+            path = path[1:]
+        
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+        request = urllib2.Request(self.url+"/rest/namespace/"+urllib.quote(path))
+        
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        
+        if extent:
+            headers += "Bytes="+extent+"\n"
+            request.add_header("Range", "Bytes="+extent)
+        else:
+            headers += "\n"
+
+        headers += now+"\n"
+        headers += "/rest/namespace/"+str.lower(path)+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request.add_header("content-type", mime_type)
+        request = self.__add_headers(request, now)
+
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError as e:
+            error_message = e.read()
+            return error_message
+         
+        else:
+            body = response.read()
+            return body
     
     def update_object(self, object_id, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
         """ Updates an existing object with listable metadata, non-listable metadata, and/or bytes of actual object data based on range.
