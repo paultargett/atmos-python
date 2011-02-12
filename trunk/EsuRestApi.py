@@ -147,8 +147,15 @@ class EsuRestApi(object):
             response = self.__send_request(request, hashout, headers)
       
         except urllib2.HTTPError, e:
-            error_message = e.read()
-            return error_message
+            if e.code == 201:
+                location = e.info().getheader('location')
+                search = re.search(self.ID_EXTRACTOR, location)
+                reg = search.groups() 
+                object_id = reg[0]
+                return object_id
+            else:
+                error_message = e.read()
+                return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
@@ -519,8 +526,15 @@ class EsuRestApi(object):
             response = self.__send_request(request, hashout, headers)
 
         except urllib2.HTTPError, e:
-            error_message = e.read()
-            return error_message
+            if e.code == 201:
+                location = e.info().getheader('location')
+                search = re.search(self.ID_EXTRACTOR, location)
+                reg = search.groups() 
+                object_id = reg[0]
+                return object_id
+            else:
+                error_message = e.read()
+                return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             location = response.info().getheader('location')
@@ -879,28 +893,6 @@ class RequestWithMethod(urllib2.Request):                                       
     def get_method(self):
         return self._method
     
-    
-from urllib2 import HTTPErrorProcessor
-
-class Python25201Handler(urllib2.HTTPErrorProcessor):
-    def http_error_201(self, req, fp, code, msg, headers):
-        result = urllib2.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
-        result.status = code
-        result.headers = headers
-        return result
-
-        try:
-            request = urllib2.Request(url)
-            opener = urllib2.build_opener(Python25201Handler())
-
-        except urllib2.HTTPError, e:
-            pass
-
-        else:
-            obj = opener.open(request)
-            print 'The original headers where', obj.headers
-            print 'The Redirect Code was', obj.status
-
 
 
 #TODO:
