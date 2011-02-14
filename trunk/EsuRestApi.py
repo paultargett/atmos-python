@@ -464,21 +464,40 @@ class EsuRestApi(object):
             return error_message
          
         
-    def get_shareable_url(self, object_id, expiration):
+    def get_shareable_url(self, expiration, object_id = None, path = None):
         """ Generates a pre-signed URL that is accessible to non-Atmos users
         
         Keyword arguments:
         object_id -- the object to which you want to provide access
+        path -- the full path to the object to which you want to create the shareable URL
         expiration -- Epoch time in the future that determines how long a shareable URL is valid
         
         """
+        
+        if path[0] == "/":
+            path = path[1:]
+        
+        if object_id and path:
+            raise Exception("both object_id and path parameters cannot be set simultaneously")
+        
+        if object_id == None and path == None:
+            raise Exception("at least one of the parameters, object_id or path, need to be set")
         
         uid_dict = {}
         uid_dict["uid"] = self.uid
         encoded_uid = urllib.urlencode(uid_dict)
             
         sb = "GET\n"
-        sb += "/rest/objects/"+object_id+"\n"
+        
+        if object_id:
+            sb += "/rest/objects/"+str(object_id)+"\n"
+            resource = "/rest/objects/"+str(object_id)
+        
+        if path:
+            sb += "/rest/namespace/"+str.lower(path)+"\n"
+            path = urllib.quote(path)
+            resource = "/rest/namespace/"+path
+                      
         sb += self.uid+"\n"
         sb += str(expiration)
                
@@ -486,11 +505,12 @@ class EsuRestApi(object):
         sig_dict = {}
         sig_dict["signature"] = signature
         encoded_sig = urllib.urlencode(sig_dict)
-        resource = "/rest/objects/"+object_id+ "?" + encoded_uid + "&expires=" + str(expiration) + "&" + encoded_sig
+                       
+        resource += "?" + encoded_uid + "&expires=" + str(expiration) + "&" + encoded_sig
         url = self.scheme + "://" + self.host + resource
-        
+               
         return url
-    
+      
     
     def create_directory(self, path):
         """ Creates a directory in the namespace interface.  Returns an object_id.
