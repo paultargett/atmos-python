@@ -404,7 +404,7 @@ class EsuRestApi(object):
             body = response.read()
             return body
     
-    def update_object(self, object_id, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+    def update_object(self, object_id, data, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None):
         """ Updates an existing object with listable metadata, non-listable metadata, and/or bytes of actual object data based on range.
         If the extent parameter is excluded and data is set to an empty string the object will be overwritten with an empty object.  If the extent
         parameter is excluded and the data parameter contains data the entire object is overwritten with new contents.
@@ -414,7 +414,7 @@ class EsuRestApi(object):
         extent -- the portion of the object to modify (default None)
         listable_meta -- a dictionary containing key/value pairs Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} (default None)
         non_listable_meta -- a dictionary containing key/value pairs {"nl_key1/patriots" : "value", "nl_key2" : "value2", "nl_key3" : "value3"} (default None)
-        data -- actual or partial object content.  (default None)
+        data -- actual or partial object content.
 
         """
     
@@ -428,12 +428,7 @@ class EsuRestApi(object):
         if extent:
             headers += "Bytes="+extent+"\n"
             request.add_header("Range", "Bytes="+extent)
-        
-        if data:
-            request.add_data(data)
-        #else:
-        #    request.add_header("content-length", "0")                                                       
-        
+                                                         
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/objects/"+object_id+"\n"
@@ -441,7 +436,8 @@ class EsuRestApi(object):
      
         request.add_header("content-type", mime_type)
         request = self.__add_headers(request, now)
-                    
+        request.add_data(data)
+            
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
             headers += "x-emc-listable-meta:"+meta_string+"\n"
