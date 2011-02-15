@@ -431,8 +431,8 @@ class EsuRestApi(object):
         
         if data:
             request.add_data(data)
-        else:
-            request.add_header("content-length", "0")                                                       
+        #else:
+        #    request.add_header("content-length", "0")                                                       
         
         headers += "\n"
         headers += now+"\n"
