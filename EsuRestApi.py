@@ -362,10 +362,34 @@ class EsuRestApi(object):
                 return e
          
         else:
-            body = response.read()
-            return body
-        
-        
+            
+            if head:
+                group_acl = {}
+                user_acl = {}
+                system_meta = {}
+                policy = {}
+            
+                if response.info().getheader('x-emc-groupacl'):
+                    group_acl = response.info().getheader('x-emc-groupacl')
+                    group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+            
+                if  response.info().getheader('x-emc-user-acl'):
+                    user_acl = response.info().getheader('x-emc-user-acl')
+                    user_acl = dict(u.split("=") for u in user_acl.split(","))
+                    
+                if  response.info().getheader('x-emc-meta'):
+                    system_meta = response.info().getheader('x-emc-meta')
+                    system_meta = dict(u.split("=") for u in system_meta.split(","))
+                    
+                if  response.info().getheader('x-emc-policy'):
+                    policy = response.info().getheader('x-emc-policy')
+            
+                return {"group_acl" : group_acl , "user_acl" : user_acl, "system_meta" : system_meta, "policy" : policy}    
+       
+            else:
+                body = response.read()
+                return body
+                
     def read_object_from_path(self, path, extent = None, head = False):
         """  Returns an entire object or a partial object based on a byte range from the namespace interface.
         
@@ -416,8 +440,33 @@ class EsuRestApi(object):
             return error_message
          
         else:
-            body = response.read()
-            return body
+            
+            if head:
+                group_acl = {}
+                user_acl = {}
+                system_meta = {}
+                policy = {}
+            
+                if response.info().getheader('x-emc-groupacl'):
+                    group_acl = response.info().getheader('x-emc-groupacl')
+                    group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+            
+                if  response.info().getheader('x-emc-user-acl'):
+                    user_acl = response.info().getheader('x-emc-user-acl')
+                    user_acl = dict(u.split("=") for u in user_acl.split(","))
+                    
+                if  response.info().getheader('x-emc-meta'):
+                    system_meta = response.info().getheader('x-emc-meta')
+                    system_meta = dict(u.split("=") for u in system_meta.split(","))
+                    
+                if  response.info().getheader('x-emc-policy'):
+                    policy = response.info().getheader('x-emc-policy')
+            
+                return {"group_acl" : group_acl , "user_acl" : user_acl, "system_meta" : system_meta, "policy" : policy}    
+       
+            else:
+                body = response.read()
+                return body
     
     def update_object(self, object_id, data, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None):
         """ Updates an existing object with listable metadata, non-listable metadata, and/or bytes of actual object data based on range.
