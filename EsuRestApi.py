@@ -78,20 +78,14 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             if e.code == 201:
-                location = e.info().getheader('location')
-                search = re.search(self.ID_EXTRACTOR, location)
-                reg = search.groups() 
-                object_id = reg[0]
+                object_id = self.__parse_location(e)
                 return object_id
             else:
                 error_message = e.read()
                 return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            location = response.info().getheader('location')
-            search = re.search(self.ID_EXTRACTOR, location)
-            reg = search.groups() 
-            object_id = reg[0]
+            object_id = self.__parse_location(response)
             return object_id
     
     def create_object_on_path(self, path, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
@@ -148,20 +142,16 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             if e.code == 201:
-                location = e.info().getheader('location')
-                search = re.search(self.ID_EXTRACTOR, location)
-                reg = search.groups() 
-                object_id = reg[0]
+                
+                object_id = self.__parse_location(e)
                 return object_id
+            
             else:
                 error_message = e.read()
                 return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            location = response.info().getheader('location')
-            search = re.search(self.ID_EXTRACTOR, location)
-            reg = search.groups() 
-            object_id = reg[0]
+            object_id = self.__parse_location(response)
             return object_id
   
     def list_objects(self, metadata_key, include_meta = False):
@@ -607,20 +597,17 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError, e:
             if e.code == 201:
-                location = e.info().getheader('location')
-                search = re.search(self.ID_EXTRACTOR, location)
-                reg = search.groups() 
-                object_id = reg[0]
+                
+                object_id = self.__parse_location(e)
+                return object_id
+                
                 return object_id
             else:
                 error_message = e.read()
                 return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            location = response.info().getheader('location')
-            search = re.search(self.ID_EXTRACTOR, location)
-            reg = search.groups() 
-            object_id = reg[0]
+            object_id = self.__parse_location(response)
             return object_id
     
     # Renames won't work before Atmos 1.3.x
@@ -659,7 +646,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                  
             return response
 
     def set_user_metadata(self, object_id, listable_meta = None, non_listable_meta = None):
@@ -744,7 +731,7 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
+        else:                                                                                                   
             return response
         
         
@@ -962,6 +949,14 @@ class EsuRestApi(object):
         request.add_header("x-emc-uid", self.uid)
         
         return request
+    
+    def __parse_location(self, response):
+            location = response.info().getheader('location')
+            search = re.search(self.ID_EXTRACTOR, location)
+            reg = search.groups() 
+            object_id = reg[0]
+            return object_id
+        
 
 
 class RequestWithMethod(urllib2.Request):                                                                       # Subclass the urllib2.Request object and then override the HTTP methom
