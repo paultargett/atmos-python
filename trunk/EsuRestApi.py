@@ -314,7 +314,7 @@ class EsuRestApi(object):
             return response
         
       
-    def read_object(self, object_id, extent = None):
+    def read_object(self, object_id, extent = None, head = False):
         """  Returns an entire object or a partial object based on a byte range.
         
         Keyword arguments:
@@ -325,9 +325,14 @@ class EsuRestApi(object):
         
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-        request = urllib2.Request(self.url+"/rest/objects/"+object_id)
         
-        headers = "GET\n"
+        if head:
+            request = RequestWithMethod("HEAD", "%s/%s" % (self.url+"/rest/objects", object_id))
+            headers = "HEAD\n"
+        else:
+            request = urllib2.Request(self.url+"/rest/objects/"+object_id)
+            headers = "GET\n"
+            
         headers += mime_type+"\n"
         
         if extent:
@@ -351,14 +356,17 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            if error_message:
+                return error_message
+            else:
+                return e
          
         else:
             body = response.read()
             return body
         
         
-    def read_object_from_path(self, path, extent = None):
+    def read_object_from_path(self, path, extent = None, head = False):
         """  Returns an entire object or a partial object based on a byte range from the namespace interface.
         
         Keyword arguments:
@@ -372,9 +380,16 @@ class EsuRestApi(object):
         
         mime_type = "application/octet-stream"
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-        request = urllib2.Request(self.url+"/rest/namespace/"+urllib.quote(path))
         
-        headers = "GET\n"
+        
+        if head:
+            request = RequestWithMethod("HEAD", "%s/%s" % (self.url+"/rest/namespace",urllib.quote(path)))
+            headers = "HEAD\n"
+
+        else:
+            request = urllib2.Request(self.url+"/rest/namespace/"+urllib.quote(path))
+            headers = "GET\n"
+            
         headers += mime_type+"\n"
         
         if extent:
@@ -729,7 +744,7 @@ class EsuRestApi(object):
                 listable_user_meta = response.info().getheader('x-emc-listable-meta')
                 listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
             
-            return listable_user_meta, nl_user_meta
+            return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
     
     
     def get_system_metadata(self, object_id, sys_tags = None):                                                  
