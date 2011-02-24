@@ -202,14 +202,15 @@ class EsuRestApi(object):
             object_list = response.read()
             return object_list
     
-    def list_directory(self, path):
+    def list_directory(self, path, limit = None, token = None):
         """ Lists objects in the namespace based on path
         
         Keyword arguments:
         path -- the path used to generate a list of objects
         
         """
-      
+        request = urllib2.Request(self.url+"/rest/namespace"+urllib.quote(path))
+
         mime_type = "application/octet-stream"
          
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
@@ -220,9 +221,17 @@ class EsuRestApi(object):
         headers += now+"\n"
         headers += "/rest/namespace"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
+        
+        if limit:
+            headers += "x-emc-limit:"+str(limit)+"\n"
+            request.add_header('x-emc-limit', limit)
+            
+        if token:
+            headers += "x-emc-token:" + token + "\n"
+            request.add_header('x-emc-token', token)
+        
         headers += "x-emc-uid:"+self.uid
-    
-        request = urllib2.Request(self.url+"/rest/namespace"+urllib.quote(path))
+        
         request.add_header("content-type", mime_type)
         request = self.__add_headers(request, now)
 
@@ -236,6 +245,7 @@ class EsuRestApi(object):
             return error_message
          
         else:
+            
             dir_list = response.read()
             return dir_list
       
