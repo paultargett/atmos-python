@@ -154,7 +154,7 @@ class EsuRestApi(object):
             object_id = self.__parse_location(response)
             return object_id
   
-    def list_objects(self, metadata_key, include_meta = False):
+    def list_objects(self, metadata_key, include_meta = False, filter_user_tags = None):
         """ Takes a listable metadata key and returns a list of objects that match.
         
         Keyword arguments:
@@ -183,7 +183,15 @@ class EsuRestApi(object):
             request.add_header("x-emc-include-meta", str(1))
 
         headers += "x-emc-tags:"+metadata_key+"\n"
-        headers += "x-emc-uid:"+self.uid
+        
+        if filter_user_tags:
+            headers += "x-emc-uid:"+self.uid+"\n"
+            headers += "x-emc-user-tags:"+filter_user_tags
+            request.add_header("x-emc-user-tags", filter_user_tags)
+        
+        else:
+            headers += "x-emc-uid:"+self.uid
+    
     
         request.add_header("content-type", mime_type)
         request.add_header("x-emc-tags", metadata_key)
@@ -202,7 +210,7 @@ class EsuRestApi(object):
             object_list = response.read()
             return object_list
     
-    def list_directory(self, path, limit = None, token = None):
+    def list_directory(self, path, limit = None, include_meta = False, token = None, filter_user_tags = None):
         """ Lists objects in the namespace based on path
         
         Keyword arguments:
@@ -222,6 +230,10 @@ class EsuRestApi(object):
         headers += "/rest/namespace"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
         
+        if include_meta:
+            headers += "x-emc-include-meta:"+str(1)+"\n"
+            request.add_header("x-emc-include-meta", str(1))
+        
         if limit:
             headers += "x-emc-limit:"+str(limit)+"\n"
             request.add_header('x-emc-limit', limit)
@@ -229,8 +241,16 @@ class EsuRestApi(object):
         if token:
             headers += "x-emc-token:" + token + "\n"
             request.add_header('x-emc-token', token)
+            
+            
+        if filter_user_tags:
+            headers += "x-emc-uid:"+self.uid+"\n"
+            headers += "x-emc-user-tags:"+filter_user_tags
+            request.add_header("x-emc-user-tags", filter_user_tags)
         
-        headers += "x-emc-uid:"+self.uid
+        else:
+            headers += "x-emc-uid:"+self.uid
+
         
         request.add_header("content-type", mime_type)
         request = self.__add_headers(request, now)
