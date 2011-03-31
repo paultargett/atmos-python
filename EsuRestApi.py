@@ -5,7 +5,7 @@ import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
 
-DEBUG = True
+DEBUG = False
 
 class EsuRestApi(object):
  
@@ -267,7 +267,15 @@ class EsuRestApi(object):
         else:
             
             dir_list = response.read()
-            return dir_list
+
+            
+            if response.info().getheader('x-emc-token'):
+                token = response.info().getheader('x-emc-token')
+                
+                return dir_list, token
+            
+            else:    
+                return dir_list
       
     def delete_object(self, object_id):
         """ Deletes objects based on object_id. """
@@ -978,7 +986,7 @@ class EsuRestApi(object):
     def __add_headers(self, request, now):
         
         request.add_header("date", now)
-        request.add_header("host", self.host)
+        #request.add_header("host", self.host)
         request.add_header("x-emc-date", now)
         request.add_header("x-emc-uid", self.uid)
         
