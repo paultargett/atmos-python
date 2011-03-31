@@ -5,7 +5,7 @@ import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
 
-DEBUG = False
+DEBUG = True
 
 class EsuRestApi(object):
  
@@ -940,11 +940,15 @@ class EsuRestApi(object):
     def __send_request(self, request, hashout, headers):
         # Private method to actually send the request
         
-        headers += ("\nx-emc-signature:"+hashout)
         if DEBUG:
             print headers+"\n"
+        headers += ("\nx-emc-signature:"+hashout)
+
         request.add_header("x-emc-signature", hashout)
 
+        if DEBUG:
+            print request.headers
+        
         response = urllib2.urlopen(request)
       
         return response
