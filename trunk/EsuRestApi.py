@@ -5,7 +5,8 @@ import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
 
-DEBUG = False
+DEBUG = True
+SIMULATE = True
 
 class EsuRestApi(object):
  
@@ -84,9 +85,10 @@ class EsuRestApi(object):
                 error_message = e.read()
                 return error_message
          
-        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            object_id = self.__parse_location(response)
-            return object_id
+        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id  
+            if not SIMULATE:
+                object_id = self.__parse_location(response)
+                return object_id
     
     def create_object_on_path(self, path, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
         """ Creates an object in the namespace interface and returns an object_id.
@@ -151,8 +153,10 @@ class EsuRestApi(object):
                 return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            object_id = self.__parse_location(response)
-            return object_id
+            
+            if not SIMULATE:
+                object_id = self.__parse_location(response)
+                return object_id
   
     def list_objects(self, metadata_key, include_meta = False, filter_user_tags = None):
         """ Takes a listable metadata key and returns a list of objects that match.
@@ -207,8 +211,9 @@ class EsuRestApi(object):
             return error_message
          
         else:
-            object_list = response.read()
-            return object_list
+            if not SIMULATE:
+                object_list = response.read()
+                return object_list
     
     def list_directory(self, path, limit = None, include_meta = False, token = None, filter_user_tags = None):
         """ Lists objects in the namespace based on path
@@ -266,16 +271,17 @@ class EsuRestApi(object):
          
         else:
             
-            dir_list = response.read()
-
-            
-            if response.info().getheader('x-emc-token'):
-                token = response.info().getheader('x-emc-token')
+            if not SIMULATE:
+                dir_list = response.read()
+    
                 
-                return dir_list, token
-            
-            else:    
-                return dir_list
+                if response.info().getheader('x-emc-token'):
+                    token = response.info().getheader('x-emc-token')
+                    
+                    return dir_list, token
+                
+                else:    
+                    return dir_list
       
     def delete_object(self, object_id):
         """ Deletes objects based on object_id. """
@@ -304,8 +310,9 @@ class EsuRestApi(object):
             error_message = e.read()
             return error_message
          
-        else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            return response
+        else:                                                                                                   
+            if not SIMULATE:
+                return response
 
 
     def delete_directory(self, path):
@@ -339,7 +346,8 @@ class EsuRestApi(object):
             return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            return response
+            if not SIMULATE:
+                return response
         
       
     def read_object(self, object_id, extent = None, head = False):
@@ -390,33 +398,33 @@ class EsuRestApi(object):
                 return e
          
         else:
-            
-            if head:
-                group_acl = {}
-                user_acl = {}
-                system_meta = {}
-                policy = {}
-            
-                if response.info().getheader('x-emc-groupacl'):
-                    group_acl = response.info().getheader('x-emc-groupacl')
-                    group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
-            
-                if  response.info().getheader('x-emc-user-acl'):
-                    user_acl = response.info().getheader('x-emc-user-acl')
-                    user_acl = dict(u.split("=") for u in user_acl.split(","))
-                    
-                if  response.info().getheader('x-emc-meta'):
-                    system_meta = response.info().getheader('x-emc-meta')
-                    system_meta = dict(u.split("=") for u in system_meta.split(","))
-                    
-                if  response.info().getheader('x-emc-policy'):
-                    policy = response.info().getheader('x-emc-policy')
-            
-                return {"group_acl" : group_acl , "user_acl" : user_acl, "system_meta" : system_meta, "policy" : policy}    
-       
-            else:
-                body = response.read()
-                return body
+            if not SIMULATE:
+                if head:
+                    group_acl = {}
+                    user_acl = {}
+                    system_meta = {}
+                    policy = {}
+                
+                    if response.info().getheader('x-emc-groupacl'):
+                        group_acl = response.info().getheader('x-emc-groupacl')
+                        group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+                
+                    if  response.info().getheader('x-emc-user-acl'):
+                        user_acl = response.info().getheader('x-emc-user-acl')
+                        user_acl = dict(u.split("=") for u in user_acl.split(","))
+                        
+                    if  response.info().getheader('x-emc-meta'):
+                        system_meta = response.info().getheader('x-emc-meta')
+                        system_meta = dict(u.split("=") for u in system_meta.split(","))
+                        
+                    if  response.info().getheader('x-emc-policy'):
+                        policy = response.info().getheader('x-emc-policy')
+                
+                    return {"group_acl" : group_acl , "user_acl" : user_acl, "system_meta" : system_meta, "policy" : policy}    
+           
+                else:
+                    body = response.read()
+                    return body
                 
     def read_object_from_path(self, path, extent = None, head = False):
         """  Returns an entire object or a partial object based on a byte range from the namespace interface.
@@ -469,32 +477,33 @@ class EsuRestApi(object):
          
         else:
             
-            if head:
-                group_acl = {}
-                user_acl = {}
-                system_meta = {}
-                policy = {}
-            
-                if response.info().getheader('x-emc-groupacl'):
-                    group_acl = response.info().getheader('x-emc-groupacl')
-                    group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
-            
-                if  response.info().getheader('x-emc-user-acl'):
-                    user_acl = response.info().getheader('x-emc-user-acl')
-                    user_acl = dict(u.split("=") for u in user_acl.split(","))
-                    
-                if  response.info().getheader('x-emc-meta'):
-                    system_meta = response.info().getheader('x-emc-meta')
-                    system_meta = dict(u.split("=") for u in system_meta.split(","))
-                    
-                if  response.info().getheader('x-emc-policy'):
-                    policy = response.info().getheader('x-emc-policy')
-            
-                return {"group_acl" : group_acl , "user_acl" : user_acl, "system_meta" : system_meta, "policy" : policy}    
-       
-            else:
-                body = response.read()
-                return body
+            if not SIMULATE:
+                if head:
+                    group_acl = {}
+                    user_acl = {}
+                    system_meta = {}
+                    policy = {}
+                
+                    if response.info().getheader('x-emc-groupacl'):
+                        group_acl = response.info().getheader('x-emc-groupacl')
+                        group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+                
+                    if  response.info().getheader('x-emc-user-acl'):
+                        user_acl = response.info().getheader('x-emc-user-acl')
+                        user_acl = dict(u.split("=") for u in user_acl.split(","))
+                        
+                    if  response.info().getheader('x-emc-meta'):
+                        system_meta = response.info().getheader('x-emc-meta')
+                        system_meta = dict(u.split("=") for u in system_meta.split(","))
+                        
+                    if  response.info().getheader('x-emc-policy'):
+                        policy = response.info().getheader('x-emc-policy')
+                
+                    return {"group_acl" : group_acl , "user_acl" : user_acl, "system_meta" : system_meta, "policy" : policy}    
+           
+                else:
+                    body = response.read()
+                    return body
     
     def update_object(self, object_id, data, extent = None, listable_meta = None, non_listable_meta = None, mime_type = None):
         """ Updates an existing object with listable metadata, non-listable metadata, and/or bytes of actual object data based on range.
@@ -645,8 +654,10 @@ class EsuRestApi(object):
                 return error_message
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            object_id = self.__parse_location(response)
-            return object_id
+            
+            if not SIMULATE:
+                object_id = self.__parse_location(response)
+                return object_id
     
     # Renames won't work before Atmos 1.3.x
     def rename_object(self, source, destination, force):
@@ -685,7 +696,8 @@ class EsuRestApi(object):
             return error_message
          
         else:                                                                                                  
-            return response
+            if not SIMULATE:
+                return response
 
     def set_user_metadata(self, object_id, listable_meta = None, non_listable_meta = None):
         """ Updates an existing object with listable and/or non-listable user metadata
@@ -770,7 +782,8 @@ class EsuRestApi(object):
             return error_message
          
         else:                                                                                                   
-            return response
+            if not SIMULATE:
+                return response
         
         
     def get_user_metadata(self, object_id):                                                                     
@@ -807,18 +820,19 @@ class EsuRestApi(object):
             return error_message
         
         else:                                                                       
-            nl_user_meta = {}
-            listable_user_meta = {}
-            
-            if response.info().getheader('x-emc-meta'):
-                nl_user_meta = response.info().getheader('x-emc-meta')
-                nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))                              # Create a Python dictionary of the data in the header and return it.
-            
-            if response.info().getheader('x-emc-listable-meta'):
-                listable_user_meta = response.info().getheader('x-emc-listable-meta')
-                listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
-            
-            return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
+            if not SIMULATE:
+                nl_user_meta = {}
+                listable_user_meta = {}
+                
+                if response.info().getheader('x-emc-meta'):
+                    nl_user_meta = response.info().getheader('x-emc-meta')
+                    nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))                              # Create a Python dictionary of the data in the header and return it.
+                
+                if response.info().getheader('x-emc-listable-meta'):
+                    listable_user_meta = response.info().getheader('x-emc-listable-meta')
+                    listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
+                
+                return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
     
     
     def get_system_metadata(self, object_id, sys_tags = None):                                                  
@@ -863,10 +877,11 @@ class EsuRestApi(object):
             return error_message
          
         else:                                                                   
-            system_meta = []
-            system_meta = response.info().getheader('x-emc-meta')
-            system_meta = dict(u.split("=") for u in system_meta.split(","))                                    # Create a Python dictionary of the data in the header and return it.
-            return system_meta
+            if not SIMULATE:
+                system_meta = []
+                system_meta = response.info().getheader('x-emc-meta')
+                system_meta = dict(u.split("=") for u in system_meta.split(","))                                    # Create a Python dictionary of the data in the header and return it.
+                return system_meta
     
     def get_listable_tags(self, metadata_key = None):
         """ Returns all the top level listable keys for which the given UID has access to in their namespace.
@@ -904,6 +919,7 @@ class EsuRestApi(object):
         hashout = self.__sign(headers)
       
         try:
+            
             response = self.__send_request(request, hashout, headers)
       
         except urllib2.HTTPError, e:
@@ -911,9 +927,11 @@ class EsuRestApi(object):
             return error_message
          
         else:                                                                                                   
-            listable_tags = []
-            listable_tags = response.info().getheader('x-emc-listable-tags')
-            return listable_tags
+            
+            if not SIMULATE:
+                listable_tags = []
+                listable_tags = response.info().getheader('x-emc-listable-tags')
+                return listable_tags
 
     def get_service_information(self):
         """ Returns Atmos version information. """
@@ -957,9 +975,10 @@ class EsuRestApi(object):
         if DEBUG:
             print request.headers
         
-        response = urllib2.urlopen(request)
-      
-        return response
+        if not SIMULATE:
+            
+            response = urllib2.urlopen(request)
+            return response
     
     
     def __sign(self, headers):
