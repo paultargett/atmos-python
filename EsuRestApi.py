@@ -5,8 +5,8 @@ import re, urlparse
 #from eventlet.green import urllib2
 #import eventlet
 
-DEBUG = True
-SIMULATE = True
+DEBUG = False
+SIMULATE = False
 
 class EsuRestApi(object):
  
@@ -27,7 +27,7 @@ class EsuRestApi(object):
             self.url = urlparse.urlunparse(self.urlparts)
  
   
-    def create_object(self, data, listable_meta = None, non_listable_meta = None, mime_type = None):
+    def create_object(self, data, useracl = None, listable_meta = None, non_listable_meta = None, mime_type = None):
         """ Creates an object in the object interface and returns an object_id.
         
         Keyword arguments:
@@ -68,8 +68,15 @@ class EsuRestApi(object):
             nl_meta_string = self.__process_metadata(non_listable_meta)
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
-     
-        headers += "x-emc-uid:"+self.uid
+            
+        if useracl:
+            headers += "x-emc-uid:"+self.uid+"\n"
+            headers += "x-emc-useracl:"+useracl
+            request.add_header("x-emc-useracl", useracl)
+
+        else:
+            headers += "x-emc-uid:"+self.uid
+            
         request = self.__add_headers(request, now)
 
         hashout = self.__sign(headers)
@@ -89,8 +96,13 @@ class EsuRestApi(object):
             if not SIMULATE:
                 object_id = self.__parse_location(response)
                 return object_id
+            
+            else:
+                
+                return response
+            
     
-    def create_object_on_path(self, path, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+    def create_object_on_path(self, path, useracl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
         """ Creates an object in the namespace interface and returns an object_id.
         
         Keyword arguments:
@@ -131,8 +143,14 @@ class EsuRestApi(object):
             nl_meta_string = self.__process_metadata(non_listable_meta)
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
+        
+        if useracl:
+            headers += "x-emc-uid:"+self.uid+"\n"
+            headers += "x-emc-useracl:"+useracl
+            request.add_header("x-emc-useracl", useracl)
 
-        headers += "x-emc-uid:"+self.uid
+        else:
+            headers += "x-emc-uid:"+self.uid
      
         request = self.__add_headers(request, now)
         request.add_data(data)
@@ -967,15 +985,27 @@ class EsuRestApi(object):
         # Private method to actually send the request
         
         if DEBUG:
-            print headers+"\n"
+            string_to_sign = headers+"\n"
         headers += ("\nx-emc-signature:"+hashout)
 
         request.add_header("x-emc-signature", hashout)
 
-        if DEBUG:
-            print request.headers
+        if DEBUG and not SIMULATE:
+            debug_data = {}
+            debug_data['request_headers'] = request.headers
+            debug_data['string_to_sign'] = string_to_sign
+            print string_to_sign
+            
+            response = urllib2.urlopen(request)
+            return response
         
-        if not SIMULATE:
+        if DEBUG and SIMULATE:
+            debug_data = {}
+            debug_data['request_headers'] = request.headers
+            debug_data['string_to_sign'] = string_to_sign
+            return debug_data
+        
+        if not DEBUG and not SIMULATE:
             
             response = urllib2.urlopen(request)
             return response
