@@ -799,7 +799,50 @@ class EsuRestApi(object):
         except urllib2.HTTPError, e:
             error_message = e.read()
             return error_message
+
+    def get_acl(self, object_id):                                                                     
+        """ Returns listable and/or non-listable user metadata in the form of a Python dictionary ( Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} )
+        based on object_id.  Returns one or more empty dictionaries if no metadata exists.
         
+        Keyword arguments:
+        object_id -- The object ID of the object whose metadata should be returned 
+        
+        """
+        
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"?acl"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?acl")
+        request.add_header("content-type", mime_type)
+        request = self.__add_headers(request, now)
+
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError, e:
+            error_message = e.read()
+            return error_message
+        
+        else:                                                                       
+            if not SIMULATE:
+                user_acl = {}
+                
+                if response.info().getheader('x-emc-useracl'):
+                    user_acl = response.info().getheader('x-emc-useracl')
+                    user_acl = dict(u.split("=") for u in user_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+               
+                return {"user_acl" : user_acl}
+
             
     def delete_user_metadata(self, object_id, metadata_key):
         """ Takes a listable metadata keys and returns a list of objects that match.
@@ -1101,12 +1144,6 @@ class RequestWithMethod(urllib2.Request):                                       
 
 #TODO:
   
-    def get_acl():
-        pass
-    
-    def set_acl():
-        pass     
-    
     # Atmos 1.3.x features
     def list_versions():
         pass
