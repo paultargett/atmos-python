@@ -27,7 +27,7 @@ class EsuRestApi(object):
             self.url = urlparse.urlunparse(self.urlparts)
  
   
-    def create_object(self, data, useracl = None, listable_meta = None, non_listable_meta = None, mime_type = None):
+    def create_object(self, data, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None):
         """ Creates an object in the object interface and returns an object_id.
         
         Keyword arguments:
@@ -69,10 +69,10 @@ class EsuRestApi(object):
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
             
-        if useracl:
+        if user_acl:
             headers += "x-emc-uid:"+self.uid+"\n"
-            headers += "x-emc-useracl:"+useracl
-            request.add_header("x-emc-useracl", useracl)
+            headers += "x-emc-useracl:"+user_acl
+            request.add_header("x-emc-useracl", user_acl)
 
         else:
             headers += "x-emc-uid:"+self.uid
@@ -102,7 +102,7 @@ class EsuRestApi(object):
                 return response
             
     
-    def create_object_on_path(self, path, useracl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+    def create_object_on_path(self, path, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
         """ Creates an object in the namespace interface and returns an object_id.
         
         Keyword arguments:
@@ -144,10 +144,10 @@ class EsuRestApi(object):
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
         
-        if useracl:
+        if user_acl:
             headers += "x-emc-uid:"+self.uid+"\n"
-            headers += "x-emc-useracl:"+useracl
-            request.add_header("x-emc-useracl", useracl)
+            headers += "x-emc-useracl:"+user_acl
+            request.add_header("x-emc-useracl", user_acl)
 
         else:
             headers += "x-emc-uid:"+self.uid
@@ -762,6 +762,44 @@ class EsuRestApi(object):
         except urllib2.HTTPError, e:
             error_message = e.read()
             return error_message
+        
+    def set_acl(self, object_id, user_acl):
+        """ Updates an existing object with the specified ACL
+        
+        Keyword arguments:
+        
+        object_id -- The object ID of the object that should be updated with user metadata
+        user_acl -- The key/value pair of the ACL to use to set on the object
+        
+        """
+        
+        mime_type = "application/octet-stream" 
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "POST\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"?acl"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+     
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/objects", object_id+"?acl"))
+        request.add_header("content-type", mime_type) 
+        request = self.__add_headers(request, now)
+        
+        headers += "x-emc-uid:"+self.uid+"\n"
+        headers += "x-emc-useracl:"+user_acl
+        request.add_header("x-emc-useracl", user_acl)
+        
+        hashout = self.__sign(headers)
+     
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError, e:
+            error_message = e.read()
+            return error_message
+        
             
     def delete_user_metadata(self, object_id, metadata_key):
         """ Takes a listable metadata keys and returns a list of objects that match.
