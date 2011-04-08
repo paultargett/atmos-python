@@ -433,7 +433,7 @@ class EsuRestApi(object):
                         
                     if  response.info().getheader('x-emc-meta'):
                         system_meta = response.info().getheader('x-emc-meta')
-                        system_meta = dict(u.split("=") for u in system_meta.split(","))
+                        system_meta = dict(u.split("=") for u in system_meta.split(", "))
                         
                     if  response.info().getheader('x-emc-policy'):
                         policy = response.info().getheader('x-emc-policy')
@@ -512,7 +512,7 @@ class EsuRestApi(object):
                         
                     if  response.info().getheader('x-emc-meta'):
                         system_meta = response.info().getheader('x-emc-meta')
-                        system_meta = dict(u.split("=") for u in system_meta.split(","))
+                        system_meta = dict(u.split("=") for u in system_meta.split(", "))
                         
                     if  response.info().getheader('x-emc-policy'):
                         policy = response.info().getheader('x-emc-policy')
@@ -925,11 +925,11 @@ class EsuRestApi(object):
                 
                 if response.info().getheader('x-emc-meta'):
                     nl_user_meta = response.info().getheader('x-emc-meta')
-                    nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(","))                              # Create a Python dictionary of the data in the header and return it.
+                    nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(", "))                              # Create a Python dictionary of the data in the header and return it.
                 
                 if response.info().getheader('x-emc-listable-meta'):
                     listable_user_meta = response.info().getheader('x-emc-listable-meta')
-                    listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(","))
+                    listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(", "))
                 
                 return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
     
@@ -979,7 +979,7 @@ class EsuRestApi(object):
             if not SIMULATE:
                 system_meta = []
                 system_meta = response.info().getheader('x-emc-meta')
-                system_meta = dict(u.split("=") for u in system_meta.split(","))                                    # Create a Python dictionary of the data in the header and return it.
+                system_meta = dict(u.split("=") for u in system_meta.split(", "))                                    # Create a Python dictionary of the data in the header and return it.
                 return system_meta
     
     def get_listable_tags(self, metadata_key = None):
