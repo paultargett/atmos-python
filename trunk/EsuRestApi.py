@@ -425,11 +425,11 @@ class EsuRestApi(object):
                 
                     if response.info().getheader('x-emc-groupacl'):
                         group_acl = response.info().getheader('x-emc-groupacl')
-                        group_acl = dict(u.split("=") for u in group_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+                        group_acl = dict(u.split("=") for u in group_acl.split(", "))                              # Create a Python dictionary of the data in the header and return it.
                 
                     if  response.info().getheader('x-emc-user-acl'):
                         user_acl = response.info().getheader('x-emc-user-acl')
-                        user_acl = dict(u.split("=") for u in user_acl.split(","))
+                        user_acl = dict(u.split("=") for u in user_acl.split(", "))
                         
                     if  response.info().getheader('x-emc-meta'):
                         system_meta = response.info().getheader('x-emc-meta')
@@ -839,7 +839,7 @@ class EsuRestApi(object):
                 
                 if response.info().getheader('x-emc-useracl'):
                     user_acl = response.info().getheader('x-emc-useracl')
-                    user_acl = dict(u.split("=") for u in user_acl.split(","))                              # Create a Python dictionary of the data in the header and return it.
+                    user_acl = dict(u.split("=") for u in user_acl.split(", "))                              # Create a Python dictionary of the data in the header and return it.
                
                 return {"user_acl" : user_acl}
 
