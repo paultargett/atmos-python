@@ -1033,11 +1033,10 @@ class EsuRestApi(object):
                 return listable_tags
     
     def get_object_info(self, object_id):
-        """ Returns listable and/or non-listable user metadata in the form of a Python dictionary ( Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} )
-        based on object_id.  Returns one or more empty dictionaries if no metadata exists.
+        """ Returns replica information for a given object.  Only works with Atmos 1.4 and later.
         
         Keyword arguments:
-        object_id -- The object ID of the object whose metadata should be returned 
+        object_id -- The object ID of the object whose relica information should be returned 
         
         """
         
