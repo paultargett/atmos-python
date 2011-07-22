@@ -1031,7 +1031,58 @@ class EsuRestApi(object):
                 listable_tags = []
                 listable_tags = response.info().getheader('x-emc-listable-tags')
                 return listable_tags
+    
+    def get_object_info(self, object_id):
+        """ Returns listable and/or non-listable user metadata in the form of a Python dictionary ( Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} )
+        based on object_id.  Returns one or more empty dictionaries if no metadata exists.
+        
+        Keyword arguments:
+        object_id -- The object ID of the object whose metadata should be returned 
+        
+        """
+        
+        mime_type = "application/octet-stream"
+        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    
+        headers = "GET\n"
+        headers += mime_type+"\n"
+        headers += "\n"
+        headers += now+"\n"
+        headers += "/rest/objects/"+object_id+"?info"+"\n"
+        headers += "x-emc-date:"+now+"\n"
+        headers += "x-emc-uid:"+self.uid
+    
+        request = urllib2.Request(self.url+"/rest/objects/"+object_id+"?info")
+        request.add_header("content-type", mime_type)
+        request = self.__add_headers(request, now)
 
+        hashout = self.__sign(headers)
+      
+        try:
+            response = self.__send_request(request, hashout, headers)
+      
+        except urllib2.HTTPError, e:
+            error_message = e.read()
+            return error_message
+        
+        else:                                                                       
+            #if not SIMULATE:
+            #    nl_user_meta = {}
+            #    listable_user_meta = {}
+            #    
+            #    if response.info().getheader('x-emc-meta'):
+            #        nl_user_meta = response.info().getheader('x-emc-meta')
+            #        nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(", "))                              # Create a Python dictionary of the data in the header and return it.
+            #    
+            #    if response.info().getheader('x-emc-listable-meta'):
+            #        listable_user_meta = response.info().getheader('x-emc-listable-meta')
+            #        listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(", "))
+            #    
+            #    return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
+            
+            return response
+    
+    
     def get_service_information(self):
         """ Returns Atmos version information. """
         
@@ -1054,8 +1105,12 @@ class EsuRestApi(object):
             response = self.__send_request(request, hashout, headers)
       
         except urllib2.HTTPError, e:
-            error_message = e.read()
-            return error_message
+            if e.code == 500:
+                return 500
+            
+            else:
+                error_message = e.read()
+                return error_message
          
         else:
             body = response.read()
