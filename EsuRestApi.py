@@ -1066,20 +1066,6 @@ class EsuRestApi(object):
             return error_message
         
         else:                                                                       
-            #if not SIMULATE:
-            #    nl_user_meta = {}
-            #    listable_user_meta = {}
-            #    
-            #    if response.info().getheader('x-emc-meta'):
-            #        nl_user_meta = response.info().getheader('x-emc-meta')
-            #        nl_user_meta = dict(u.split("=") for u in nl_user_meta.split(", "))                              # Create a Python dictionary of the data in the header and return it.
-            #    
-            #    if response.info().getheader('x-emc-listable-meta'):
-            #        listable_user_meta = response.info().getheader('x-emc-listable-meta')
-            #        listable_user_meta = dict(u.split("=") for u in listable_user_meta.split(", "))
-            #    
-            #    return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
-            
             body = response.read()
             return body
     
