@@ -1080,7 +1080,8 @@ class EsuRestApi(object):
             #    
             #    return {"listable_user_meta" : listable_user_meta , "nl_user_meta" : nl_user_meta}
             
-            return response
+            body = response.read()
+            return body
     
     
     def get_service_information(self):
