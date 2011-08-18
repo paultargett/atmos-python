@@ -22,7 +22,7 @@ class EsuRestApi(object):
             self.urlparts = (self.scheme, self.netloc, self.path, self.params, self.query, self.fragment)
             self.url = urlparse.urlunparse(self.urlparts)
         else:
-            self.scheme, self.netloc, self.path, self.params, self.query, self.fragment = "http", host, '', '', '', ''
+            self.scheme, self.netloc, self.path, self.params, self.query, self.fragment = "http", host + ":" + str(port), '', '', '', ''
             self.urlparts = (self.scheme, self.netloc, self.path, self.params, self.query, self.fragment)
             self.url = urlparse.urlunparse(self.urlparts)
  
