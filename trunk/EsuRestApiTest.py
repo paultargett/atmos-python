@@ -5,6 +5,7 @@ Unit tests for the EsuRestApi class
 """
 
 import unittest, random, string
+from xml.etree import ElementTree as ET
 from EsuRestApi import EsuRestApi
 
 class EsuRestApiTest(unittest.TestCase):
@@ -20,17 +21,14 @@ class EsuRestApiTest(unittest.TestCase):
     
     # Enter your secret here.  (shhsh!)
     secret = " "
-    
+       
     oid_clean_up = []
     path_clean_up = []
     
     def setUp(self):
-        print "\n Starting setup"     
         self.esu = EsuRestApi(self.host, self.port, self.uid, self.secret)
         
     def tearDown(self):
-        print "\n Tearing down"
-        
         if self.oid_clean_up:
             for object in self.oid_clean_up:
                 self.esu.delete_object(object)
@@ -103,7 +101,7 @@ class EsuRestApiTest(unittest.TestCase):
         self.assertEqual(listable_meta, metadata, "metadata key/values are wrong")
         
         self.oid_clean_up.append(oid)
-
+    
     def test_read_acl(self):
         data = "The quick brown fox jumps over the lazy dog"
         oid = self.esu.create_object(data=data)
@@ -116,16 +114,60 @@ class EsuRestApiTest(unittest.TestCase):
         self.assertEqual(acl, "FULL_CONTROL", "acl does not match")
         
         self.oid_clean_up.append(oid)
-
+    
     
     def test_delete_user_metadata(self):
-        pass
+        data = "The quick brown fox jumps over the lazy dog"
+        listable_meta = {"key1" : "value1"}
+        oid = self.esu.create_object(data=data, listable_meta=listable_meta)
+        self.assertTrue(oid, "null object ID returned")
+        object = self.esu.read_object(oid)
+        self.assertEqual(object, data, "wrong object content")
+        
+        # Retrieves existing metadata for an object and compares it to the known metadata dictionary that was stored
+        metadata = self.esu.get_user_metadata(oid)['listable_user_meta']
+        self.assertEqual(listable_meta, metadata, "metadata key/values are wrong")
+        
+        self.esu.delete_user_metadata(object_id=oid, metadata_key="key1")
+        metadata = self.esu.get_user_metadata(oid)['listable_user_meta']
+        #print metadata
+        self.assertEqual(metadata, {})
+        
+        self.oid_clean_up.append(oid)
     
     def test_get_system_metadata(self):
-        pass
+        data = "The quick brown fox jumps over the lazy dog"
+        oid = self.esu.create_object(data=data)
+        self.assertTrue(oid, "null object ID returned")
+        object = self.esu.read_object(oid)
+        self.assertEqual(object, data, "wrong object content")
+        system_meta = self.esu.get_system_metadata(oid)
+        self.assertTrue(system_meta['size'], "Size should be > 0" )
+        self.assertTrue(system_meta['ctime'], "the ctime was not set")
+        self.assertEqual(system_meta['objectid'], oid, "Object IDs do not match")
+        self.oid_clean_up.append(oid)
     
-    def test_list_objects(self):
-        pass
+    #def test_list_objects(self):
+    #    data = "The quick brown fox jumps over the lazy dog"
+    #    key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8))
+    #    listable_meta = {key : "value1"}
+    #    oid = self.esu.create_object(data=data, listable_meta=listable_meta)
+    #    self.assertTrue(oid, "null object ID returned")
+    #    object = self.esu.read_object(oid)
+    #    self.assertEqual(object, data, "wrong object content")
+    #    
+    #    list = self.esu.list_objects(metadata_key=key)
+    #    tree = ET.fromstring(list)
+    #    #root = tree.getroot()
+    #    values = tree.find('ObjectID')
+    #
+    #    #for value in values:
+    #    #    print value.get('ObjectID'), value.text
+    #    print values       
+    #
+    #
+    #    self.oid_clean_up.append(oid)
+
     
     
     
