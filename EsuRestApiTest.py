@@ -21,7 +21,7 @@ class EsuRestApiTest(unittest.TestCase):
     
     # Enter your secret here.  (shhsh!)
     secret = " "
-           
+       
     oid_clean_up = []
     path_clean_up = []
     
@@ -162,11 +162,20 @@ class EsuRestApiTest(unittest.TestCase):
         oid_from_xml = tree.find('{{{0}}}Object/{{{0}}}ObjectID'.format(NS))
         self.assertEqual(oid, oid_from_xml.text, "wrong object ids")
         self.oid_clean_up.append(oid)
+        
+    def test_list_directory(self):
+        data = "The quick brown fox jumps over the lazy dog"
+        path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
+        oid = self.esu.create_object_on_path(data=data, path=path)
+        dir = path.split("/")[0]
+        list = self.esu.list_directory(dir)
+        tree = fromstring(list)
+        oid_from_xml = tree.find('{http://www.emc.com/cos/}DirectoryList/{http://www.emc.com/cos/}DirectoryEntry/{http://www.emc.com/cos/}ObjectID')
+        self.assertEqual(oid, oid_from_xml.text, "wrong object ids")
+        self.oid_clean_up.append(oid)
+        self.path_clean_up.append(path)
 
     
-    
-    
-
 if __name__ == "__main__":
     test_classes = [ EsuRestApiTest ]
     for test_class in test_classes:
