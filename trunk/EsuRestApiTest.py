@@ -5,7 +5,7 @@ Unit tests for the EsuRestApi class
 """
 
 import unittest, random, string
-from xml.etree import ElementTree as ET
+from xml.etree.ElementTree import fromstring
 from EsuRestApi import EsuRestApi
 
 class EsuRestApiTest(unittest.TestCase):
@@ -21,7 +21,7 @@ class EsuRestApiTest(unittest.TestCase):
     
     # Enter your secret here.  (shhsh!)
     secret = " "
-       
+           
     oid_clean_up = []
     path_clean_up = []
     
@@ -147,26 +147,21 @@ class EsuRestApiTest(unittest.TestCase):
         self.assertEqual(system_meta['objectid'], oid, "Object IDs do not match")
         self.oid_clean_up.append(oid)
     
-    #def test_list_objects(self):
-    #    data = "The quick brown fox jumps over the lazy dog"
-    #    key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8))
-    #    listable_meta = {key : "value1"}
-    #    oid = self.esu.create_object(data=data, listable_meta=listable_meta)
-    #    self.assertTrue(oid, "null object ID returned")
-    #    object = self.esu.read_object(oid)
-    #    self.assertEqual(object, data, "wrong object content")
-    #    
-    #    list = self.esu.list_objects(metadata_key=key)
-    #    tree = ET.fromstring(list)
-    #    #root = tree.getroot()
-    #    values = tree.find('ObjectID')
-    #
-    #    #for value in values:
-    #    #    print value.get('ObjectID'), value.text
-    #    print values       
-    #
-    #
-    #    self.oid_clean_up.append(oid)
+    def test_list_objects(self):
+        data = "The quick brown fox jumps over the lazy dog"
+        key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8))
+        listable_meta = {key : "value1"}
+        oid = self.esu.create_object(data=data, listable_meta=listable_meta)
+        self.assertTrue(oid, "null object ID returned")
+        object = self.esu.read_object(oid)
+        self.assertEqual(object, data, "wrong object content")
+        
+        list = self.esu.list_objects(metadata_key=key)
+        tree = fromstring(list)
+        NS = "http://www.emc.com/cos/"
+        oid_from_xml = tree.find('{{{0}}}Object/{{{0}}}ObjectID'.format(NS))
+        self.assertEqual(oid, oid_from_xml.text, "wrong object ids")
+        self.oid_clean_up.append(oid)
 
     
     
