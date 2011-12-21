@@ -20,7 +20,7 @@ class EsuRestApiTest(unittest.TestCase):
     uid = " "
     
     # Enter your secret here.  (shhsh!)
-    secret = " "
+    secret = " "  
        
     oid_clean_up = []
     path_clean_up = []
@@ -174,8 +174,18 @@ class EsuRestApiTest(unittest.TestCase):
         self.assertEqual(oid, oid_from_xml.text, "wrong object ids")
         self.oid_clean_up.append(oid)
         self.path_clean_up.append(path)
-
-    
+        
+    def test_delete_object(self):
+        data = "The quick brown fox jumps over the lazy dog"
+        oid = self.esu.create_object(data=data)
+        self.assertTrue(oid, "null object ID returned")
+        self.esu.delete_object(oid)
+        xml_error = self.esu.read_object(oid)
+        tree = fromstring(xml_error)
+        code = tree.find("Code")
+        error_code = code.text
+        self.assertEqual(error_code, "1003", "wrong error code")
+        
 if __name__ == "__main__":
     test_classes = [ EsuRestApiTest ]
     for test_class in test_classes:
