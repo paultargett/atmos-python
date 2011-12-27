@@ -20,14 +20,13 @@ class EsuRestApiTest(unittest.TestCase):
     uid = " "
     
     # Enter your secret here.  (shhsh!)
-    secret = " "  
-       
-    oid_clean_up = []
-    path_clean_up = []
-    
+    secret = " "
+
     def setUp(self):
         self.esu = EsuRestApi(self.host, self.port, self.uid, self.secret)
-        
+        self.oid_clean_up = []
+        self.path_clean_up = []
+    
     def tearDown(self):
         if self.oid_clean_up:
             for object in self.oid_clean_up:
@@ -48,6 +47,7 @@ class EsuRestApiTest(unittest.TestCase):
     def test_create_empty_object_on_path(self):
         data = " "
         path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
+        print path
         oid = self.esu.create_object_on_path(data=data, path=path)
         self.assertTrue(oid, "null object ID returned")
         object = self.esu.read_object(oid)
@@ -166,6 +166,7 @@ class EsuRestApiTest(unittest.TestCase):
     def test_list_directory(self):
         data = "The quick brown fox jumps over the lazy dog"
         path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
+        print path
         oid = self.esu.create_object_on_path(data=data, path=path)
         dir = path.split("/")[0]
         list = self.esu.list_directory(dir)
