@@ -21,7 +21,7 @@ class EsuRestApiTest(unittest.TestCase):
     
     # Enter your secret here.  (shhsh!)
     secret = " "
-
+ 
     def setUp(self):
         self.esu = EsuRestApi(self.host, self.port, self.uid, self.secret)
         self.oid_clean_up = []
@@ -47,7 +47,6 @@ class EsuRestApiTest(unittest.TestCase):
     def test_create_empty_object_on_path(self):
         data = " "
         path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
-        print path
         oid = self.esu.create_object_on_path(data=data, path=path)
         self.assertTrue(oid, "null object ID returned")
         object = self.esu.read_object(oid)
@@ -110,7 +109,6 @@ class EsuRestApiTest(unittest.TestCase):
         resp = self.esu.set_acl(oid, user_acl)
         
         acl = self.esu.get_acl(oid)['user_acl'][uid]
-        #print user_acl
         self.assertEqual(acl, "FULL_CONTROL", "acl does not match")
         
         self.oid_clean_up.append(oid)
@@ -130,7 +128,6 @@ class EsuRestApiTest(unittest.TestCase):
         
         self.esu.delete_user_metadata(object_id=oid, metadata_key="key1")
         metadata = self.esu.get_user_metadata(oid)['listable_user_meta']
-        #print metadata
         self.assertEqual(metadata, {})
         
         self.oid_clean_up.append(oid)
@@ -166,7 +163,6 @@ class EsuRestApiTest(unittest.TestCase):
     def test_list_directory(self):
         data = "The quick brown fox jumps over the lazy dog"
         path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
-        print path
         oid = self.esu.create_object_on_path(data=data, path=path)
         dir = path.split("/")[0]
         list = self.esu.list_directory(dir)
