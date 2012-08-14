@@ -3,8 +3,8 @@ import hmac, base64, hashlib, time
 import urllib2, urllib, httplib
 import re, urlparse
 from xml.etree.ElementTree import fromstring
-#from eventlet.green import urllib2
-#import eventlet
+
+from xml.dom.minidom import parse, parse
 
 DEBUG = False
 SIMULATE = False
@@ -251,6 +251,10 @@ class EsuRestApi(object):
             
             parsed_list = self.__parse_list_objects_response(object_list, include_meta = include_meta)
             
+            if response.info().getheader('x-emc-token'):
+                token = response.info().getheader('x-emc-token')    
+                return parsed_list, token,
+            
             return parsed_list
     
     def list_directory(self, path, limit = None, include_meta = False, token = None, filter_user_tags = None):
@@ -313,11 +317,10 @@ class EsuRestApi(object):
             dir_list = response.read()
             
             parsed_list = self.__parse_list_directory_response(dir_list, include_meta = include_meta)
-
-        
+ 
             if response.info().getheader('x-emc-token'):
                 token = response.info().getheader('x-emc-token')    
-                return dir_list, token
+                return parsed_list, token,
                 
             else:    
                 return parsed_list
@@ -1237,7 +1240,6 @@ class EsuRestApi(object):
         return parsed_list
     
     def __parse_list_directory_response(self, list, include_meta):
-        #print list
         tree = fromstring(list)
         NS = "{http://www.emc.com/cos/}"
         
@@ -1267,10 +1269,13 @@ class EsuRestApi(object):
             parsed_list.append(object_dictionary)
 
         else:
+            print "in else of parse_list_dir"
             parsed_list = []
             for object in tree.iter(NS + "DirectoryList"):
                     for object in object.iter(NS + "DirectoryEntry"):
                         parsed_list.append((object[0].text,object[1].text, object[2].text))
+                        
+            #print parsed_list
         return parsed_list
 
         
