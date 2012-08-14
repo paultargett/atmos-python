@@ -1,12 +1,24 @@
 #!/usr/bin/env python
 import hmac, base64, hashlib, time
-import urllib2, urllib
+import urllib2, urllib, httplib
 import re, urlparse
+from xml.etree.ElementTree import fromstring
 #from eventlet.green import urllib2
 #import eventlet
 
 DEBUG = False
 SIMULATE = False
+
+class MyHTTPConnection(httplib.HTTPConnection):
+    def send(self, s):
+        print s  # or save them, or whatever!
+        httplib.HTTPConnection.send(self, s)
+
+class MyHTTPHandler(urllib2.HTTPHandler):
+    def http_open(self, req):
+        print "In the MyHTTPHandler class"
+        return self.do_open(MyHTTPConnection, req)
+
 
 class EsuRestApi(object):
  
@@ -27,7 +39,7 @@ class EsuRestApi(object):
             self.url = urlparse.urlunparse(self.urlparts)
  
   
-    def create_object(self, data, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None):
+    def create_object(self, data, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, checksum = None):
         """ Creates an object in the object interface and returns an object_id.
         
         Keyword arguments:
@@ -45,8 +57,8 @@ class EsuRestApi(object):
         headers = "POST\n"
         
                                                                                                                 # data cannot be empty or set to "" or else urllib2.request sets the method to GET causing signature mismatch
-        if data:
-            headers += mime_type+"\n"
+        #if data:
+        headers += mime_type+"\n"
 
         headers += "\n"
         headers += now+"\n"
@@ -55,9 +67,9 @@ class EsuRestApi(object):
      
         request = urllib2.Request(self.url+"/rest/objects")
      
-        if data:
-            request.add_header("content-type", mime_type)
-            request.add_data(data)
+        #if data:
+        request.add_header("content-type", mime_type)
+        request.add_data(data)
         
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
@@ -73,6 +85,10 @@ class EsuRestApi(object):
             headers += "x-emc-uid:"+self.uid+"\n"
             headers += "x-emc-useracl:"+user_acl
             request.add_header("x-emc-useracl", user_acl)
+            
+        if checksum:
+            headers += "x-emc-wschecksum:" + checksum
+            request.add_header("x-emc-wschecksum", checksum)
 
         else:
             headers += "x-emc-uid:"+self.uid
@@ -90,7 +106,8 @@ class EsuRestApi(object):
                 return object_id
             else:
                 error_message = e.read()
-                return error_message
+                atmos_error = self.__parse_atmos_error(error_message)
+                raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id  
             if not SIMULATE:
@@ -161,14 +178,14 @@ class EsuRestApi(object):
             response = self.__send_request(request, hashout, headers)
       
         except urllib2.HTTPError, e:
-            if e.code == 201:
-                
+            if e.code == 201:     
                 object_id = self.__parse_location(e)
                 return object_id
             
             else:
                 error_message = e.read()
-                return error_message
+                atmos_error = self.__parse_atmos_error(error_message)
+                raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             
@@ -226,12 +243,15 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:
-            if not SIMULATE:
-                object_list = response.read()
-                return object_list
+            object_list = response.read()
+            
+            parsed_list = self.__parse_list_objects_response(object_list, include_meta = include_meta)
+            
+            return parsed_list
     
     def list_directory(self, path, limit = None, include_meta = False, token = None, filter_user_tags = None):
         """ Lists objects in the namespace based on path
@@ -285,21 +305,22 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:
             
-            if not SIMULATE:
-                dir_list = response.read()
-    
+            dir_list = response.read()
+            
+            parsed_list = self.__parse_list_directory_response(dir_list, include_meta = include_meta)
+
+        
+            if response.info().getheader('x-emc-token'):
+                token = response.info().getheader('x-emc-token')    
+                return dir_list, token
                 
-                if response.info().getheader('x-emc-token'):
-                    token = response.info().getheader('x-emc-token')
-                    
-                    return dir_list, token
-                
-                else:    
-                    return dir_list
+            else:    
+                return parsed_list
       
     def delete_object(self, object_id):
         """ Deletes objects based on object_id. """
@@ -326,7 +347,8 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   
             if not SIMULATE:
@@ -361,7 +383,8 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             if not SIMULATE:
@@ -410,10 +433,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            if error_message:
-                return error_message
-            else:
-                return e
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:
             if not SIMULATE:
@@ -491,7 +512,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:
             
@@ -576,7 +598,8 @@ class EsuRestApi(object):
         
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         
     def get_shareable_url(self, expiration, object_id = None, path = None):
@@ -669,7 +692,8 @@ class EsuRestApi(object):
                 return object_id
             else:
                 error_message = e.read()
-                return error_message
+                atmos_error = self.__parse_atmos_error(error_message)
+                raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
             
@@ -711,7 +735,8 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:                                                                                                  
             if not SIMULATE:
@@ -761,7 +786,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
         
     def set_acl(self, object_id, user_acl):
         """ Updates an existing object with the specified ACL
@@ -798,7 +824,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
 
     def get_acl(self, object_id):                                                                     
         """ Returns listable and/or non-listable user metadata in the form of a Python dictionary ( Ex. {"key1 : "value", "key2" : "value2", "key3" : "value3"} )
@@ -831,7 +858,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
         
         else:                                                                       
             if not SIMULATE:
@@ -878,7 +906,8 @@ class EsuRestApi(object):
 
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   
             if not SIMULATE:
@@ -916,7 +945,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
         
         else:                                                                       
             if not SIMULATE:
@@ -973,7 +1003,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:                                                                   
             if not SIMULATE:
@@ -1023,7 +1054,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   
             
@@ -1062,7 +1094,8 @@ class EsuRestApi(object):
       
         except urllib2.HTTPError, e:
             error_message = e.read()
-            return error_message
+            atmos_error = self.__parse_atmos_error(error_message)
+            raise EsuException(e.code, atmos_error)
         
         else:                                                                       
             body = response.read()
@@ -1096,7 +1129,8 @@ class EsuRestApi(object):
             
             else:
                 error_message = e.read()
-                return error_message
+                atmos_error = self.__parse_atmos_error(error_message)
+                raise EsuException(e.code, atmos_error)
          
         else:
             body = response.read()
@@ -1106,31 +1140,15 @@ class EsuRestApi(object):
     def __send_request(self, request, hashout, headers):
         # Private method to actually send the request
         
-        if DEBUG:
-            string_to_sign = headers+"\n"
         headers += ("\nx-emc-signature:"+hashout)
 
         request.add_header("x-emc-signature", hashout)
 
-        if DEBUG and not SIMULATE:
-            debug_data = {}
-            debug_data['request_headers'] = request.headers
-            debug_data['string_to_sign'] = string_to_sign
-            print string_to_sign
-            
-            response = urllib2.urlopen(request)
-            return response
-        
-        if DEBUG and SIMULATE:
-            debug_data = {}
-            debug_data['request_headers'] = request.headers
-            debug_data['string_to_sign'] = string_to_sign
-            return debug_data
-        
-        if not DEBUG and not SIMULATE:
-            
-            response = urllib2.urlopen(request)
-            return response
+        response = urllib2.urlopen(request)
+        return response
+        #opener = urllib2.build_opener(urllib2.HTTPHandler)
+        #response = opener.open(request)
+        #return response
     
     
     def __sign(self, headers):
@@ -1170,6 +1188,92 @@ class EsuRestApi(object):
             object_id = reg[0]
             return object_id
         
+    def __parse_atmos_error(self, error):
+        tree = fromstring(error)
+        self.code = tree.find("Code")
+        self.message = tree.find("Message")
+        return self
+
+
+# {"4ee696e4a11f549604f0b75393ac4a04fc9183e6dc39" : {"atime" : "2012-06-01T19:30:06Z", "mtime" : "2012-06-01T19:30:06Z", "itime" : "2012-06-01T19:30:06Z" } }
+
+    def __parse_list_objects_response(self, list, include_meta):
+        #print list
+        tree = fromstring(list)
+        NS = "{http://www.emc.com/cos/}"
+        
+        if include_meta:
+
+            parsed_list = []
+            object_dictionary = {}
+            
+            for object in tree.iter(NS + "Object"):
+                for oid in object.iter(NS + "ObjectID"):
+                    for sys_metadata_list in object.iter(NS + "SystemMetadataList"):
+                        for sys_meta in sys_metadata_list.iter(NS + "Metadata"):
+                            if oid.text not in object_dictionary:
+                                object_dictionary[oid.text] = {}
+                                object_dictionary[oid.text]['system_metadata'] = {}
+                                object_dictionary[oid.text]['system_metadata'] = []
+                                object_dictionary[oid.text]['user_metadata'] = {}
+                            
+                            object_dictionary[oid.text]['system_metadata'].append((sys_meta[0].text, sys_meta[1].text, "False"))
+                            
+                            object_dictionary[oid.text]['user_metadata'] = [] 
+                            for user_metadata_list in object.iter(NS + "UserMetadataList"):
+                                for user_meta in user_metadata_list.iter(NS + "Metadata"):
+                                    
+                                    object_dictionary[oid.text]['user_metadata'].append((user_meta[0].text, user_meta[1].text, user_meta[2].text))
+                            
+                            
+            parsed_list.append(object_dictionary)
+
+        else:
+            parsed_list = []
+            for object in tree.iter(NS + "Object"):
+                    for oid in object.iter(NS + "ObjectID"):
+                        parsed_list.append(oid.text)
+        
+        return parsed_list
+    
+    def __parse_list_directory_response(self, list, include_meta):
+        #print list
+        tree = fromstring(list)
+        NS = "{http://www.emc.com/cos/}"
+        
+        if include_meta:
+
+            parsed_list = []
+            object_dictionary = {}
+            
+            for list in tree.iter(NS + "DirectoryList"):
+                for object in list.iter(NS + "DirectoryEntry"):
+                    for sys_metadata_list in object.iter(NS + "SystemMetadataList"):
+                        for sys_meta in sys_metadata_list.iter(NS + "Metadata"):
+                            if object[2].text not in object_dictionary:
+                                object_dictionary[object[2].text] = {}
+                                object_dictionary[object[2].text]['system_metadata'] = {}
+                                object_dictionary[object[2].text]['system_metadata'] = []
+                                object_dictionary[object[2].text]['user_metadata'] = {}
+                            
+                            object_dictionary[object[2].text]['system_metadata'].append((sys_meta[0].text, sys_meta[1].text, "false"))
+                            
+                            object_dictionary[object[2].text]['user_metadata'] = [] 
+                            for user_metadata_list in object.iter(NS + "UserMetadataList"):
+                                for user_meta in user_metadata_list.iter(NS + "Metadata"):
+                                    
+                                    object_dictionary[object[2].text]['user_metadata'].append((user_meta[0].text, user_meta[1].text, user_meta[2].text))
+                                                        
+            parsed_list.append(object_dictionary)
+
+        else:
+            parsed_list = []
+            for object in tree.iter(NS + "DirectoryList"):
+                    for object in object.iter(NS + "DirectoryEntry"):
+                        parsed_list.append((object[0].text,object[1].text, object[2].text))
+        return parsed_list
+
+        
 
 
 class RequestWithMethod(urllib2.Request):                                                                       # Subclass the urllib2.Request object and then override the HTTP methom
@@ -1180,8 +1284,14 @@ class RequestWithMethod(urllib2.Request):                                       
    
     def get_method(self):
         return self._method
-    
 
+class EsuException(Exception):
+    def __init__(self, http_code, atmos_error):
+        self.http_code = http_code
+        self.atmos_error_code = atmos_error.code.text
+        self.atmos_error_message = atmos_error.message.text
+    def __str__(self):
+        return repr(self)
 
 #TODO:
   
