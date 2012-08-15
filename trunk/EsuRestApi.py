@@ -674,11 +674,9 @@ class EsuRestApi(object):
                 raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            
-            if not SIMULATE:
-                object_id = self.__parse_location(response)
-                return object_id
-    
+            object_id = self.__parse_location(response)
+            return object_id
+
     # Renames won't work before Atmos 1.3.x
     def rename_object(self, source, destination, force):
         """  Renames an object in the namespace interface.
@@ -717,8 +715,7 @@ class EsuRestApi(object):
             raise EsuException(e.code, atmos_error)
          
         else:                                                                                                  
-            if not SIMULATE:
-                return response
+            return response
 
     def set_user_metadata(self, object_id, listable_meta = None, non_listable_meta = None):
         """ Updates an existing object with listable and/or non-listable user metadata
@@ -888,8 +885,7 @@ class EsuRestApi(object):
             raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   
-            if not SIMULATE:
-                return response
+            return response
         
         
     def get_user_metadata(self, object_id):                                                                     
@@ -1036,11 +1032,9 @@ class EsuRestApi(object):
             raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   
-            
-            if not SIMULATE:
-                listable_tags = []
-                listable_tags = response.info().getheader('x-emc-listable-tags')
-                return listable_tags
+            response = response.info().getheader('x-emc-listable-tags')
+            listable_tags = response.split(', ')
+            return listable_tags
     
     def get_object_info(self, object_id):
         """ Returns replica information for a given object.  Only works with Atmos 1.4 and later.
