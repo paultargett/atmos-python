@@ -9,17 +9,6 @@ from xml.dom.minidom import parse, parse
 DEBUG = False
 SIMULATE = False
 
-class MyHTTPConnection(httplib.HTTPConnection):
-    def send(self, s):
-        print s  # or save them, or whatever!
-        httplib.HTTPConnection.send(self, s)
-
-class MyHTTPHandler(urllib2.HTTPHandler):
-    def http_open(self, req):
-        print "In the MyHTTPHandler class"
-        return self.do_open(MyHTTPConnection, req)
-
-
 class EsuRestApi(object):
  
     ID_EXTRACTOR = "/[0-9a-zA-Z]+/objects/([0-9a-f]{44})"
@@ -55,11 +44,7 @@ class EsuRestApi(object):
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "POST\n"
-        
-                                                                                                                # data cannot be empty or set to "" or else urllib2.request sets the method to GET causing signature mismatch
-        #if data:
         headers += mime_type+"\n"
-
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/objects\n"
@@ -110,14 +95,8 @@ class EsuRestApi(object):
                 raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id  
-            if not SIMULATE:
-                object_id = self.__parse_location(response)
-                return object_id
-            
-            else:
-                
-                return response
-            
+            object_id = self.__parse_location(response)
+            return object_id
     
     def create_object_on_path(self, path, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
         """ Creates an object in the namespace interface and returns an object_id.
@@ -188,10 +167,8 @@ class EsuRestApi(object):
                 raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            
-            if not SIMULATE:
-                object_id = self.__parse_location(response)
-                return object_id
+            object_id = self.__parse_location(response)
+            return object_id
   
     def list_objects(self, metadata_key, include_meta = False, filter_user_tags = None):
         """ Takes a listable metadata key and returns a list of objects that match.
@@ -255,7 +232,7 @@ class EsuRestApi(object):
                 token = response.info().getheader('x-emc-token')    
                 return parsed_list, token,
             
-            return parsed_list
+            return parsed_list, None,
     
     def list_directory(self, path, limit = None, include_meta = False, token = None, filter_user_tags = None):
         """ Lists objects in the namespace based on path
@@ -323,7 +300,7 @@ class EsuRestApi(object):
                 return parsed_list, token,
                 
             else:    
-                return parsed_list
+                return parsed_list, None,
       
     def delete_object(self, object_id):
         """ Deletes objects based on object_id. """
@@ -354,8 +331,7 @@ class EsuRestApi(object):
             raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   
-            if not SIMULATE:
-                return response
+            return response.getcode()
 
 
     def delete_directory(self, path):
@@ -390,8 +366,7 @@ class EsuRestApi(object):
             raise EsuException(e.code, atmos_error)
          
         else:                                                                                                   # If there was no HTTPError, parse the location header in the response body to get the object_id
-            if not SIMULATE:
-                return response
+            return response.getcode()
         
       
     def read_object(self, object_id, extent = None, head = False):
@@ -1149,9 +1124,6 @@ class EsuRestApi(object):
 
         response = urllib2.urlopen(request)
         return response
-        #opener = urllib2.build_opener(urllib2.HTTPHandler)
-        #response = opener.open(request)
-        #return response
     
     
     def __sign(self, headers):
@@ -1201,7 +1173,6 @@ class EsuRestApi(object):
 # {"4ee696e4a11f549604f0b75393ac4a04fc9183e6dc39" : {"atime" : "2012-06-01T19:30:06Z", "mtime" : "2012-06-01T19:30:06Z", "itime" : "2012-06-01T19:30:06Z" } }
 
     def __parse_list_objects_response(self, list, include_meta):
-        #print list
         tree = fromstring(list)
         NS = "{http://www.emc.com/cos/}"
         
@@ -1269,13 +1240,11 @@ class EsuRestApi(object):
             parsed_list.append(object_dictionary)
 
         else:
-            print "in else of parse_list_dir"
             parsed_list = []
             for object in tree.iter(NS + "DirectoryList"):
                     for object in object.iter(NS + "DirectoryEntry"):
                         parsed_list.append((object[0].text,object[1].text, object[2].text))
                         
-            #print parsed_list
         return parsed_list
 
         
@@ -1310,19 +1279,6 @@ class EsuException(Exception):
     def restore_version():
         pass
     
-    
-
- 
-#
-#
-#def use_async_io():
-#    for item in i:
-#        now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-#        for item in pool.imap(__get_headers(now)):
-#            print i
-#
-#pool = eventlet.GreenPool()
-
 
 
 
