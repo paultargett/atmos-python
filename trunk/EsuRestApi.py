@@ -1106,7 +1106,10 @@ class EsuRestApi(object):
          
         else:
             body = response.read()
-            return body
+            
+            version = self.__parse_version_information(body)
+            
+            return version
                    
     
     def __send_request(self, request, hashout, headers):
@@ -1163,8 +1166,6 @@ class EsuRestApi(object):
         self.message = tree.find("Message")
         return self
 
-
-# {"4ee696e4a11f549604f0b75393ac4a04fc9183e6dc39" : {"atime" : "2012-06-01T19:30:06Z", "mtime" : "2012-06-01T19:30:06Z", "itime" : "2012-06-01T19:30:06Z" } }
 
     def __parse_list_objects_response(self, list, include_meta):
         tree = fromstring(list)
@@ -1241,7 +1242,12 @@ class EsuRestApi(object):
                         
         return parsed_list
 
-        
+    
+    def __parse_version_information(self, response):
+        tree = fromstring(response)
+        NS = "{http://www.emc.com/cos/}"
+        for version in tree.iter(NS + "Atmos"):                
+            return version.text
 
 
 class RequestWithMethod(urllib2.Request):                                                                       # Subclass the urllib2.Request object and then override the HTTP methom
