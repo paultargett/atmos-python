@@ -1072,11 +1072,9 @@ class EsuRestApi(object):
         else:                                                                       
             body = response.read()
             
-            with open('c:\\object_info.xml', 'w') as f:
-                f.write(body)
-
+            object_info = self.__parse_object_info_response(body)
             
-            return body
+            return object_info
     
     
     def get_service_information(self):
@@ -1247,6 +1245,30 @@ class EsuRestApi(object):
                         
         return parsed_list
     
+    
+    def __parse_object_info_response(self, response):
+        tree = fromstring(response)
+        NS = "{http://www.emc.com/cos/}"
+        
+        object_dictionary = {}
+        
+        for object in tree.iter(NS + "GetObjectInfoResponse"):
+            for replica in object.iter(NS + "replicas"):
+                for item in replica.iter(NS + "replica"):
+                    
+                    item0 = item[0].tag.split('}')
+                    item1 = item[1].tag.split('}')
+                    item2 = item[2].tag.split('}')
+                    item3 = item[3].tag.split('}')
+                    
+                    if object[0].text not in object_dictionary:
+                        object_dictionary[object[0].text] = {}
+                        object_dictionary[object[0].text]['replicas'] = {}
+                        object_dictionary[object[0].text]['replicas'] = []
+                        
+                    object_dictionary[object[0].text]['replicas'].append((item[0].text, item[1].text, item[2].text, item[3].text, item[4].text))
+
+        return object_dictionary
     
     def __parse_version_information(self, response):
         tree = fromstring(response)
