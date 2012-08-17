@@ -1253,6 +1253,15 @@ class EsuRestApi(object):
         object_dictionary = {}
         
         for object in tree.iter(NS + "GetObjectInfoResponse"):
+            
+            object_tag0 = object[0].tag.split("}")
+            object_tag1 = object[1].tag.split("}")
+            object_tag2 = object[2].tag.split("}")
+            object_tag3 = object[3].tag.split("}")
+            object_tag4 = object[4].tag.split("}")
+            object_tag5 = object[5].tag.split("}")
+            
+            
             for replica in object.iter(NS + "replicas"):
                 for item in replica.iter(NS + "replica"):
                     
@@ -1267,6 +1276,11 @@ class EsuRestApi(object):
                         object_dictionary[object[0].text]['replicas'] = []
                         
                     object_dictionary[object[0].text]['replicas'].append((item[0].text, item[1].text, item[2].text, item[3].text, item[4].text))
+                object_dictionary[object[0].text][object_tag1[1]] = (object[1].text)
+                object_dictionary[object[0].text][object_tag2[1]] = (object[2].text)
+                #object_dictionary[object[0].text][object_tag3[1]] = (object[3][0].text, object[3][1].text)
+                object_dictionary[object[0].text][object_tag4[1]] = (object[4][0].text)
+                object_dictionary[object[0].text][object_tag5[1]] = (object[5][0].text, object[5][1].text)
 
         return object_dictionary
     
