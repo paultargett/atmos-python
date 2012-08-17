@@ -1071,6 +1071,11 @@ class EsuRestApi(object):
         
         else:                                                                       
             body = response.read()
+            
+            with open('c:\\object_info.xml', 'w') as f:
+                f.write(body)
+
+            
             return body
     
     
@@ -1241,7 +1246,7 @@ class EsuRestApi(object):
                         parsed_list.append((object[0].text,object[1].text, object[2].text))
                         
         return parsed_list
-
+    
     
     def __parse_version_information(self, response):
         tree = fromstring(response)
