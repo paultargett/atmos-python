@@ -6,7 +6,7 @@ Unit tests for the EsuRestApi class
 
 import unittest, random, string
 from xml.etree.ElementTree import fromstring
-from EsuRestApi import EsuRestApi
+from EsuRestApi import EsuRestApi, EsuException
 
 class EsuRestApiTest(unittest.TestCase):
     
@@ -21,7 +21,7 @@ class EsuRestApiTest(unittest.TestCase):
     
     # Enter your secret here.  (shhsh!)
     secret = " "
- 
+    
     def setUp(self):
         self.esu = EsuRestApi(self.host, self.port, self.uid, self.secret)
         self.oid_clean_up = []
@@ -154,10 +154,7 @@ class EsuRestApiTest(unittest.TestCase):
         self.assertEqual(object, data, "wrong object content")
         
         list = self.esu.list_objects(metadata_key=key)
-        tree = fromstring(list)
-        NS = "http://www.emc.com/cos/"
-        oid_from_xml = tree.find('{{{0}}}Object/{{{0}}}ObjectID'.format(NS))
-        self.assertEqual(oid, oid_from_xml.text, "wrong object ids")
+        self.assertEqual(oid, list[0][0], "wrong object ids")
         self.oid_clean_up.append(oid)
         
     def test_list_directory(self):
@@ -166,9 +163,7 @@ class EsuRestApiTest(unittest.TestCase):
         oid = self.esu.create_object_on_path(data=data, path=path)
         dir = path.split("/")[0]
         list = self.esu.list_directory(dir)
-        tree = fromstring(list)
-        oid_from_xml = tree.find('{http://www.emc.com/cos/}DirectoryList/{http://www.emc.com/cos/}DirectoryEntry/{http://www.emc.com/cos/}ObjectID')
-        self.assertEqual(oid, oid_from_xml.text, "wrong object ids")
+        self.assertEqual(oid, list[0][0][0], "wrong object ids")
         self.oid_clean_up.append(oid)
         self.path_clean_up.append(path)
         
@@ -177,11 +172,12 @@ class EsuRestApiTest(unittest.TestCase):
         oid = self.esu.create_object(data=data)
         self.assertTrue(oid, "null object ID returned")
         self.esu.delete_object(oid)
-        xml_error = self.esu.read_object(oid)
-        tree = fromstring(xml_error)
-        code = tree.find("Code")
-        error_code = code.text
-        self.assertEqual(error_code, "1003", "wrong error code")
+        
+        try:
+            object = self.esu.read_object(oid)
+            
+        except EsuException, e:
+            self.assertEqual(e.atmos_error_code, "1003", "wrong error code")
         
 if __name__ == "__main__":
     test_classes = [ EsuRestApiTest ]
