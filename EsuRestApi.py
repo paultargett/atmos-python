@@ -545,7 +545,7 @@ class EsuRestApi(object):
         headers += mime_type+"\n"
         
         if extent:
-            headers += "Bytes="+extent+"\n"
+            headers += "Bytes="+extent
             request.add_header("Range", "Bytes="+extent)
                                                          
         headers += "\n"
@@ -568,6 +568,8 @@ class EsuRestApi(object):
             request.add_header("x-emc-meta", nl_meta_string)
      
         headers += "x-emc-uid:"+self.uid
+
+        #print "String to Sign: " + headers
     
         hashout = self.__sign(headers)
      
