@@ -630,7 +630,7 @@ class EsuRestApi(object):
         return url
       
     
-    def create_directory(self, path):
+    def create_directory(self, path, user_acl=None, group_acl=None):
         """ Creates a directory in the namespace interface.  Returns an object_id.
         
         Keyword arguments:
@@ -646,6 +646,9 @@ class EsuRestApi(object):
             
         
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+
+        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", urllib.quote(path)))
+        request = self.__add_headers(request, now)
     
         headers = "POST\n"
         headers += "\n"
@@ -653,11 +656,20 @@ class EsuRestApi(object):
         headers += now+"\n"
         headers += "/rest/namespace/"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
+
+        if group_acl:
+            headers += "x-emc-groupacl:" + group_acl + "\n"
+            request.add_header('x-emc-groupacl', group_acl)
+
         headers += "x-emc-uid:"+self.uid
+
+        if user_acl:
+            headers += "\nx-emc-useracl:" + user_acl 
+            request.add_header('x-emc-useracl', user_acl)
+
     
-        request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", urllib.quote(path)))
-        request = self.__add_headers(request, now)
-    
+        #print 'String to Sign: ' + headers + "\n"
+
         hashout = self.__sign(headers)
 
         try:
