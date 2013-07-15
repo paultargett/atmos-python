@@ -646,12 +646,15 @@ class EsuRestApi(object):
             
         
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+        content_type = "application/octet-stream" # Required by POST
 
         request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", urllib.quote(path)))
         request = self.__add_headers(request, now)
+
+        request.add_header('content-type', content_type)
     
         headers = "POST\n"
-        headers += "\n"
+        headers += content_type + "\n"
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/namespace/"+str.lower(path)+"\n"
