@@ -28,7 +28,7 @@ class EsuRestApi(object):
             self.url = urlparse.urlunparse(self.urlparts)
  
   
-    def create_object(self, data, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, checksum = None):
+    def create_object(self, data = "", user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, checksum = None, group_acl = None):
         """ Creates an object in the object interface and returns an object_id.
         
         Keyword arguments:
@@ -50,11 +50,14 @@ class EsuRestApi(object):
         headers += "/rest/objects\n"
         headers += "x-emc-date:"+now+"\n"
      
-        request = urllib2.Request(self.url+"/rest/objects")
+        request = RequestWithMethod("POST", self.url+"/rest/objects")
      
-        #if data:
         request.add_header("content-type", mime_type)
         request.add_data(data)
+
+        if group_acl:
+            headers += "x-emc-groupacl:" + group_acl + "\n"
+            request.add_header('x-emc-groupacl', group_acl)
         
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
@@ -66,17 +69,16 @@ class EsuRestApi(object):
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
             
-        if user_acl:
-            headers += "x-emc-uid:"+self.uid+"\n"
-            headers += "x-emc-useracl:"+user_acl
-            request.add_header("x-emc-useracl", user_acl)
-            
         if checksum:
             headers += "x-emc-wschecksum:" + checksum
             request.add_header("x-emc-wschecksum", checksum)
 
-        else:
-            headers += "x-emc-uid:"+self.uid
+        headers += "x-emc-uid:"+self.uid
+
+        if user_acl:
+            headers += "\nx-emc-useracl:"+user_acl
+            request.add_header("x-emc-useracl", user_acl)
+            
             
         request = self.__add_headers(request, now)
 
@@ -98,7 +100,7 @@ class EsuRestApi(object):
             object_id = self.__parse_location(response)
             return object_id
     
-    def create_object_on_path(self, path, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = None):
+    def create_object_on_path(self, path, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = "", group_acl = None):
         """ Creates an object in the namespace interface and returns an object_id.
         
         Keyword arguments:
@@ -112,23 +114,25 @@ class EsuRestApi(object):
         if path[0] != "/":
             path = "/" + path
      
-        if mime_type == None and data != None:
+        if mime_type == None:
             mime_type = "application/octet-stream"
          
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     
         headers = "POST\n" 
-        request = urllib2.Request(self.url+"/rest/namespace"+urllib.quote(path))
+        request = RequestWithMethod("POST", self.url+"/rest/namespace"+urllib.quote(path))
 
-        if data:
-            headers += mime_type+"\n"
-            request.add_header("content-type", mime_type)
-
+        headers += mime_type+"\n"
+        request.add_header("content-type", mime_type)
      
         headers += "\n"
         headers += now+"\n"
         headers += "/rest/namespace"+str.lower(path)+"\n"
         headers += "x-emc-date:"+now+"\n"
+
+        if group_acl:
+            headers += "x-emc-groupacl:" + group_acl + "\n"
+            request.add_header('x-emc-groupacl', group_acl)
     
         if listable_meta:
             meta_string = self.__process_metadata(listable_meta)
@@ -140,13 +144,12 @@ class EsuRestApi(object):
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
         
+        headers += "x-emc-uid:"+self.uid
+
         if user_acl:
-            headers += "x-emc-uid:"+self.uid+"\n"
-            headers += "x-emc-useracl:"+user_acl
+            headers += "\nx-emc-useracl:"+user_acl
             request.add_header("x-emc-useracl", user_acl)
 
-        else:
-            headers += "x-emc-uid:"+self.uid
      
         request = self.__add_headers(request, now)
         request.add_data(data)
@@ -646,7 +649,7 @@ class EsuRestApi(object):
             
         
         now = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-        content_type = "application/octet-stream" # Required by POST
+        content_type = "application/x-www-form-urlencoded" # Required by POST on some systems and by HTTP spec
 
         request = RequestWithMethod("POST", "%s/%s" % (self.url+"/rest/namespace", urllib.quote(path)))
         request = self.__add_headers(request, now)
@@ -1145,6 +1148,7 @@ class EsuRestApi(object):
     
     def __sign(self, headers):
         # Private method used to sign HTTP requests
+        #print 'String to Sign:', headers
         
         decodedkey = base64.b64decode(self.secret)                                                          
         hash = hmac.new(decodedkey, headers, hashlib.sha1).digest()                                         
