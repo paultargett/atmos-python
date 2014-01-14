@@ -4,23 +4,23 @@
 Unit tests for the EsuRestApi class
 """
 
-import unittest, random, string
+import unittest, random, string, hashlib
 from xml.etree.ElementTree import fromstring
 from EsuRestApi import EsuRestApi, EsuException
 
 class EsuRestApiTest(unittest.TestCase):
     
     # Enter your own host in the form of sub.domain.com or 10.0.1.250
-    host = " "
+    host = "lciga090.lss.emc.com"
     
     # Enter the port where Atmos lives here
     port = 80
     
     # Enter your full UID in the form of something/something_else
-    uid = " "
+    uid = "0e2200283d4143d9b2895992a64cd319/test"
     
     # Enter your secret here.  (shhsh!)
-    secret = " "
+    secret = "lYp88RptTEnBOEh/DC0w5ys7olU="
     
     def setUp(self):
         self.esu = EsuRestApi(self.host, self.port, self.uid, self.secret)
@@ -61,15 +61,32 @@ class EsuRestApiTest(unittest.TestCase):
         self.assertEquals(data, object)
         self.oid_clean_up.append(oid)
     
+    def test_create_object_with_content_and_checksum(self):
+        data = "The quick brown fox jumps over the lazy dog"
+        checksum = "SHA1/%d/%s" %  (len(data), hashlib.sha1(data).hexdigest())
+        oid = self.esu.create_object(data=data, checksum=checksum)
+        self.oid_clean_up.append(oid)
+        object = self.esu.read_object(oid)
+        self.assertEquals(data, object)
+    
     def test_create_object_on_path_with_content(self):
         data = "The quick brown fox jumps over the lazy dog"
         path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
         oid = self.esu.create_object_on_path(data=data, path=path)
+        self.oid_clean_up.append(oid)
         self.assertTrue(oid, "null object ID returned")
         object = self.esu.read_object(oid)
         self.assertEqual(object, data, "wrong object content")
+    
+    def test_create_object_on_path_with_content_and_checksum(self):
+        data = "The quick brown fox jumps over the lazy dog"
+        path = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8)) + "/file.data"
+        checksum = "SHA1/%d/%s" %  (len(data), hashlib.sha1(data).hexdigest())
+        oid = self.esu.create_object_on_path(data=data, path=path, checksum=checksum)
         self.oid_clean_up.append(oid)
-        self.path_clean_up.append(path)
+        self.assertTrue(oid, "null object ID returned")
+        object = self.esu.read_object(oid)
+        self.assertEqual(object, data, "wrong object content")
     
     def test_create_object_on_path_with_metadata(self):
         data = "The quick brown fox jumps over the lazy dog"

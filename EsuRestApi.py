@@ -69,15 +69,15 @@ class EsuRestApi(object):
             headers += "x-emc-meta:"+nl_meta_string+"\n"
             request.add_header("x-emc-meta", nl_meta_string)
             
-        if checksum:
-            headers += "x-emc-wschecksum:" + checksum
-            request.add_header("x-emc-wschecksum", checksum)
-
         headers += "x-emc-uid:"+self.uid
 
         if user_acl:
             headers += "\nx-emc-useracl:"+user_acl
             request.add_header("x-emc-useracl", user_acl)
+
+        if checksum:
+            headers += "\nx-emc-wschecksum:" + checksum
+            request.add_header("x-emc-wschecksum", checksum)
             
             
         request = self.__add_headers(request, now)
@@ -100,7 +100,7 @@ class EsuRestApi(object):
             object_id = self.__parse_location(response)
             return object_id
     
-    def create_object_on_path(self, path, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = "", group_acl = None):
+    def create_object_on_path(self, path, user_acl = None, listable_meta = None, non_listable_meta = None, mime_type = None, data = "", group_acl = None, checksum=None):
         """ Creates an object in the namespace interface and returns an object_id.
         
         Keyword arguments:
@@ -150,6 +150,9 @@ class EsuRestApi(object):
             headers += "\nx-emc-useracl:"+user_acl
             request.add_header("x-emc-useracl", user_acl)
 
+        if checksum:
+            headers += "\nx-emc-wschecksum:" + checksum
+            request.add_header("x-emc-wschecksum", checksum)
      
         request = self.__add_headers(request, now)
         request.add_data(data)
